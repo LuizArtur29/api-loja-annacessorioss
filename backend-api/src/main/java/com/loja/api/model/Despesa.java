@@ -1,5 +1,6 @@
 package com.loja.api.model;
 
+import com.loja.api.model.enums.CategoriaDespesa;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,4 +28,8 @@ public class Despesa {
 
     @Column(name = "data_pagamento", nullable = false)
     private LocalDate dataPagamento;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private CategoriaDespesa categoria;
 }

@@ -33,6 +33,7 @@ public class DespesaService {
         despesa.setDescricao(dto.descricao());
         despesa.setValor(dto.valor());
         despesa.setDataPagamento(dto.dataPagamento());
+        despesa.setCategoria(dto.categoria());
 
         despesa = repository.save(despesa);
         return new DespesaResponseDTO(despesa);

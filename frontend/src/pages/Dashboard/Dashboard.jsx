@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import vendaService from '../../api/vendaService';
 import despesaService from '../../api/despesaService';
 import './Dashboard.css';
 
 function Dashboard() {
-    // 1. Buscar Vendas (Entradas) com cache
     const { data: vendas = [], isLoading: loadingVendas } = useQuery({
         queryKey: ['vendas'],
         queryFn: async () => {
@@ -14,7 +13,6 @@ function Dashboard() {
         }
     });
 
-    // 2. Buscar Despesas (Saídas) com cache
     const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
         queryKey: ['despesas'],
         queryFn: async () => {
@@ -23,37 +21,65 @@ function Dashboard() {
         }
     });
 
-    // 3. Cálculos Financeiros
-    const totalEntradas = vendas.reduce((acc, venda) => acc + venda.valorTotal, 0);
-    const totalSaidas = despesas.reduce((acc, despesa) => acc + despesa.valor, 0);
+    const totalEntradas = vendas.reduce((acc, venda) => acc + parseFloat(venda.valorTotal || 0), 0);
+    const totalSaidas = despesas.reduce((acc, despesa) => acc + parseFloat(despesa.valor || 0), 0);
     const saldoLiquido = totalEntradas - totalSaidas;
 
-    // 4. Preparar Dados para o Gráfico
-    const dataGrafico = [
-        { name: 'Entradas', valor: totalEntradas, color: '#27AE60' },
-        { name: 'Saídas', valor: totalSaidas, color: '#C0392B' }
+    const dataGraficoBarras = [
+        { name: 'Entradas', valor: totalEntradas, color: '#10b981' },
+        { name: 'Saídas', valor: totalSaidas, color: '#ef4444' }
     ];
 
-    const formatCurrency = (value) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    const categoriasLabels = {
+        MERCADORIA: 'Mercadorias',
+        EMBALAGEM: 'Embalagens',
+        CUSTO_FIXO: 'Custos Fixos',
+        MARKETING: 'Marketing',
+        IMPOSTO: 'Impostos',
+        OUTROS: 'Outros'
+    };
 
-    // Pequeno feedback visual enquanto os dados carregam inicialmente
+    const despesasAgrupadas = despesas.reduce((acc, desp) => {
+        const cat = desp.categoria || 'OUTROS';
+        acc[cat] = (acc[cat] || 0) + parseFloat(desp.valor || 0);
+        return acc;
+    }, {});
+
+    const dataGraficoPizza = Object.keys(despesasAgrupadas).map(key => ({
+        name: categoriasLabels[key] || key,
+        value: despesasAgrupadas[key]
+    })).filter(item => item.value > 0);
+
+    // Cores da Pizza (Tons de Dourado/Âmbar para a identidade visual)
+    const COLORS = ['#d4af37', '#c29f2d', '#b08f23', '#f59e0b', '#d97706', '#71717a'];
+
+    // --- ESTILOS PARA O TEMA ESCURO ---
+    const chartTextColor = '#e4e4e7'; // Cor clara para eixos e legendas
+    const tooltipStyle = {
+        backgroundColor: '#272732', // Mesma cor de fundo dos cartões
+        borderColor: 'rgba(255, 255, 255, 0.1)', // Borda subtil
+        borderRadius: '8px',
+        color: '#ffffff', // Texto branco dentro do tooltip
+        boxShadow: '0 4px 12px rgba(0,0,0,0.5)' // Sombra para destaque
+    };
+    // ----------------------------------
+
+    const formatCurrency = (value) => {
+        const num = parseFloat(value) || 0;
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+    };
+
     if (loadingVendas || loadingDespesas) {
-        return (
-            <div className="page-header">
-                <h2>A carregar painel financeiro...</h2>
-            </div>
-        );
+        return <div className="page-header"><h2>A carregar painel financeiro...</h2></div>;
     }
 
     return (
         <div className="dashboard-container">
             <div className="page-header">
                 <h2>Painel Financeiro</h2>
-                <p>Visão geral do negócio</p>
+                <p>Visão geral do negócio e distribuição de custos</p>
             </div>
 
-            {/* Cartões de Resumo */}
             <div className="cards-grid">
                 <div className="summary-card entradas">
                     <h3>Entradas (Vendas)</h3>
@@ -69,26 +95,58 @@ function Dashboard() {
                 </div>
             </div>
 
-            <div className="dashboard-content">
-                {/* Gráfico de Barras */}
+            <div className="dashboard-charts">
                 <div className="chart-section">
-                    <h3>Entradas vs Saídas</h3>
+                    <h3>Balanço Geral</h3>
                     <div style={{ height: 350, width: '100%', marginTop: '20px' }}>
                         <ResponsiveContainer>
-                            <BarChart data={dataGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <XAxis dataKey="name" stroke="#7A6E5D" tick={{ fontFamily: 'Outfit' }} />
-                                <YAxis stroke="#7A6E5D" tickFormatter={(val) => `R$ ${val}`} tick={{ fontFamily: 'Outfit' }} />
-                                <Tooltip
-                                    formatter={(value) => formatCurrency(value)}
-                                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E8E0D4', borderRadius: '12px', color: '#2C2418', fontFamily: 'Outfit', boxShadow: '0 4px 12px rgba(44, 36, 24, 0.08)' }}
-                                />
-                                <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={100}>
-                                    {dataGrafico.map((entry, index) => (
+                            <BarChart data={dataGraficoBarras} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                {/* Eixos com cor clara */}
+                                <XAxis dataKey="name" stroke={chartTextColor} tick={{ fill: chartTextColor }} />
+                                <YAxis stroke={chartTextColor} tick={{ fill: chartTextColor }} tickFormatter={(val) => `R$ ${val}`} />
+                                {/* Tooltip com estilo escuro corrigido */}
+                                <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
+                                <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={80}>
+                                    {dataGraficoBarras.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="chart-section">
+                    <h3>Para onde vai o dinheiro?</h3>
+                    <div style={{ height: 350, width: '100%', marginTop: '20px' }}>
+                        {dataGraficoPizza.length > 0 ? (
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie
+                                        data={dataGraficoPizza}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={80}
+                                        outerRadius={110}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        stroke="none"
+                                    >
+                                        {dataGraficoPizza.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    {/* Tooltip e Legenda com cores claras */}
+                                    <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
+                                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ color: chartTextColor }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#a1a1aa' }}>
+                                Nenhuma despesa registada.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,22 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import CurrencyInput from 'react-currency-input-field';
+import Select from 'react-select';
+import { NumericFormat } from 'react-number-format';
 import produtoService from '../../api/produtoService';
 import categoriaService from '../../api/categoriaService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
-
 function Produtos() {
-    const [produtos, setProdutos] = useState([]);
-    const [categorias, setCategorias] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+
+    // 1. Buscas com Cache (React Query)
+    const { data: produtos = [], isLoading: loadingProdutos } = useQuery({
+        queryKey: ['produtos'],
+        queryFn: async () => {
+            const res = await produtoService.getAll();
+            return res.data;
+        }
+    });
+
+    const { data: categorias = [], isLoading: loadingCategorias } = useQuery({
+        queryKey: ['categorias'],
+        queryFn: async () => {
+            const res = await categoriaService.getAll();
+            return res.data;
+        }
+    });
+
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
-
-    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, cliente: null });
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, produto: null });
 
     const [form, setForm] = useState({
         nome: '',
@@ -26,24 +42,41 @@ function Produtos() {
         categoriaId: '',
     });
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    // 2. Preparar as opções para o React Select
+    const categoriaOptions = categorias.map((cat) => ({
+        value: cat.id,
+        label: cat.nome
+    }));
 
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const [prodRes, catRes] = await Promise.all([
-                produtoService.getAll(),
-                categoriaService.getAll(),
-            ]);
-            setProdutos(prodRes.data);
-            setCategorias(catRes.data);
-        } catch {
-            toast.error('Erro ao carregar produtos');
-        } finally {
-            setLoading(false);
-        }
+    // Estilos personalizados do Select para bater com o modal escuro
+    const customSelectStyles = {
+        control: (provided, state) => ({
+            ...provided,
+            backgroundColor: 'var(--surface-secondary)',
+            borderColor: state.isFocused ? 'var(--accent-color)' : 'var(--border-color)',
+            borderRadius: '10px',
+            minHeight: '42px',
+            boxShadow: 'none',
+            '&:hover': { borderColor: state.isFocused ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.15)' },
+            cursor: 'text'
+        }),
+        menu: (provided) => ({
+            ...provided,
+            backgroundColor: 'var(--surface-primary)',
+            border: `1px solid var(--border-color)`,
+            borderRadius: '8px',
+            zIndex: 9999 // Para ficar por cima do modal
+        }),
+        option: (provided, state) => ({
+            ...provided,
+            backgroundColor: state.isFocused ? 'var(--surface-hover)' : 'transparent',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            '&:active': { backgroundColor: 'var(--accent-alpha)' }
+        }),
+        singleValue: (provided) => ({ ...provided, color: 'var(--text-primary)' }),
+        input: (provided) => ({ ...provided, color: 'var(--text-primary)' }),
+        placeholder: (provided) => ({ ...provided, color: 'var(--text-muted)' })
     };
 
     const resetForm = () =>
@@ -62,7 +95,7 @@ function Produtos() {
             descricao: prod.descricao || '',
             precoVenda: prod.precoVenda,
             quantidadeEstoque: prod.quantidadeEstoque,
-            categoriaId: prod.categoriaId,
+            categoriaId: prod.categoria.id, // Ajustado para pegar o ID correto do objeto aninhado do back-end
         });
         setModalOpen(true);
     };
@@ -92,7 +125,7 @@ function Produtos() {
                 toast.success('Produto criado');
             }
             setModalOpen(false);
-            loadData();
+            queryClient.invalidateQueries({ queryKey: ['produtos'] }); // Recarrega os dados em pano de fundo
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
         } finally {
@@ -100,21 +133,20 @@ function Produtos() {
         }
     };
 
-    const handleDelete = (cli) => {
-        setConfirmDelete({ isOpen: true, cliente: cli });
+    // 3. Funções do Modal de Exclusão Moderno
+    const handleDeleteClick = (prod) => {
+        setConfirmDelete({ isOpen: true, produto: prod });
     };
 
-    // Esta é a função que o botão "Sim, Excluir" do modal vai chamar
     const executeDelete = async () => {
-        const cli = confirmDelete.cliente;
         try {
-            await clienteService.delete(cli.id);
-            toast.success('Cliente excluído');
-            loadData();
+            await produtoService.delete(confirmDelete.produto.id);
+            toast.success('Produto excluído');
+            queryClient.invalidateQueries({ queryKey: ['produtos'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
         } finally {
-            setConfirmDelete({ isOpen: false, cliente: null }); // Fecha o modal
+            setConfirmDelete({ isOpen: false, produto: null });
         }
     };
 
@@ -124,7 +156,11 @@ function Produtos() {
     const columns = [
         { key: 'id', header: 'ID' },
         { key: 'nome', header: 'Nome' },
-        { key: 'categoriaNome', header: 'Categoria' },
+        {
+            header: 'Categoria',
+            key: 'categoriaNome',
+            render: (row) => row.categoria?.nome || '—' // Previne erros se a categoria vier nula
+        },
         {
             header: 'Preço',
             key: 'precoVenda',
@@ -150,18 +186,18 @@ function Produtos() {
         <div>
             <div className="page-header">
                 <h2>Produtos</h2>
-                <p>Gerencie seu estoque de bijuterias</p>
+                <p>Faça a gestão do seu stock de bijuterias</p>
             </div>
 
             <DataTable
                 columns={columns}
                 data={produtos}
-                loading={loading}
-                searchPlaceholder="Buscar produto..."
+                loading={loadingProdutos || loadingCategorias}
+                searchPlaceholder="Procurar produto..."
                 onAdd={openNew}
                 addLabel="Novo Produto"
                 onEdit={openEdit}
-                onDelete={handleDelete}
+                onDelete={handleDeleteClick}
             />
 
             <Modal
@@ -191,52 +227,57 @@ function Produtos() {
                         placeholder="Descrição opcional"
                     />
                 </div>
-                <div className="form-group">
-                    <label>Preço de Venda *</label>
-                    <CurrencyInput
-                        name="precoVenda"
-                        value={form.precoVenda}
-                        onValueChange={(value) => setForm({ ...form, precoVenda: value })}
-                        placeholder="R$ 0,00"
-                        prefix="R$ "
-                        decimalsLimit={2}
-                        decimalSeparator=","
-                        groupSeparator="."
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Quantidade em Estoque *</label>
-                    <input
-                        type="number"
-                        name="quantidadeEstoque"
-                        value={form.quantidadeEstoque}
-                        onChange={handleChange}
-                        placeholder="0"
-                        min="0"
-                    />
-                </div>
+
+                {/* 4. Select Pesquisável para Categoria */}
                 <div className="form-group">
                     <label>Categoria *</label>
-                    <select
-                        name="categoriaId"
-                        value={form.categoriaId}
-                        onChange={handleChange}
-                    >
-                        <option value="">Selecione...</option>
-                        {categorias.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                                {cat.nome}
-                            </option>
-                        ))}
-                    </select>
+                    <Select
+                        options={categoriaOptions}
+                        value={categoriaOptions.find(c => c.value === form.categoriaId) || null}
+                        onChange={(option) => setForm({ ...form, categoriaId: option ? option.value : '' })}
+                        placeholder="Selecione ou procure uma categoria..."
+                        isSearchable
+                        styles={customSelectStyles}
+                        noOptionsMessage={() => "Categoria não encontrada"}
+                    />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    {/* Máscara de dinheiro no Preço */}
+                    <div className="form-group">
+                        <label>Preço de Venda *</label>
+                        <NumericFormat
+                            value={form.precoVenda}
+                            onValueChange={(values) => setForm({ ...form, precoVenda: values.value })}
+                            thousandSeparator="."
+                            decimalSeparator=","
+                            prefix="R$ "
+                            decimalScale={2}
+                            fixedDecimalScale
+                            placeholder="R$ 0,00"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Quantidade em Estoque *</label>
+                        <input
+                            type="number"
+                            name="quantidadeEstoque"
+                            value={form.quantidadeEstoque}
+                            onChange={handleChange}
+                            placeholder="0"
+                            min="0"
+                        />
+                    </div>
                 </div>
             </Modal>
+
+            {/* Modal de Confirmação Moderno */}
             <ConfirmModal
                 isOpen={confirmDelete.isOpen}
-                title="Excluir Cliente"
-                message={`Tem certeza que deseja excluir o cliente "${confirmDelete.cliente?.nome}"?`}
+                title="Excluir Produto"
+                message={`Tem a certeza que deseja excluir o produto "${confirmDelete.produto?.nome}"?`}
                 onConfirm={executeDelete}
-                onClose={() => setConfirmDelete({ isOpen: false, cliente: null })}
+                onClose={() => setConfirmDelete({ isOpen: false, produto: null })}
             />
         </div>
     );
