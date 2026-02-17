@@ -6,6 +6,7 @@ import {
     LuUsers,
     LuShoppingCart,
     LuReceipt,
+    LuWallet,
 } from 'react-icons/lu';
 
 function Sidebar() {
@@ -29,6 +30,12 @@ function Sidebar() {
             items: [
                 { to: '/nova-venda', icon: <LuShoppingCart />, label: 'Nova Venda' },
                 { to: '/vendas', icon: <LuReceipt />, label: 'Histórico' },
+            ],
+        },
+        {
+            section: 'Financeiro',
+            items: [
+                { to: '/despesas', icon: <LuWallet />, label: 'Despesas' },
             ],
         },
     ];

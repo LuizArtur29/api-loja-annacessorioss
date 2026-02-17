@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import CurrencyInput from 'react-currency-input-field';
 import produtoService from '../../api/produtoService';
 import categoriaService from '../../api/categoriaService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+
 
 function Produtos() {
     const [produtos, setProdutos] = useState([]);
@@ -12,6 +15,8 @@ function Produtos() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
+
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, cliente: null });
 
     const [form, setForm] = useState({
         nome: '',
@@ -95,14 +100,21 @@ function Produtos() {
         }
     };
 
-    const handleDelete = async (prod) => {
-        if (!window.confirm(`Deseja excluir o produto "${prod.nome}"?`)) return;
+    const handleDelete = (cli) => {
+        setConfirmDelete({ isOpen: true, cliente: cli });
+    };
+
+    // Esta é a função que o botão "Sim, Excluir" do modal vai chamar
+    const executeDelete = async () => {
+        const cli = confirmDelete.cliente;
         try {
-            await produtoService.delete(prod.id);
-            toast.success('Produto excluído');
+            await clienteService.delete(cli.id);
+            toast.success('Cliente excluído');
             loadData();
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
+        } finally {
+            setConfirmDelete({ isOpen: false, cliente: null }); // Fecha o modal
         }
     };
 
@@ -181,14 +193,15 @@ function Produtos() {
                 </div>
                 <div className="form-group">
                     <label>Preço de Venda *</label>
-                    <input
-                        type="number"
+                    <CurrencyInput
                         name="precoVenda"
                         value={form.precoVenda}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0.01"
+                        onValueChange={(value) => setForm({ ...form, precoVenda: value })}
+                        placeholder="R$ 0,00"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        decimalSeparator=","
+                        groupSeparator="."
                     />
                 </div>
                 <div className="form-group">
@@ -218,6 +231,13 @@ function Produtos() {
                     </select>
                 </div>
             </Modal>
+            <ConfirmModal
+                isOpen={confirmDelete.isOpen}
+                title="Excluir Cliente"
+                message={`Tem certeza que deseja excluir o cliente "${confirmDelete.cliente?.nome}"?`}
+                onConfirm={executeDelete}
+                onClose={() => setConfirmDelete({ isOpen: false, cliente: null })}
+            />
         </div>
     );
 }

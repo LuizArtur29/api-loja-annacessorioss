@@ -1,80 +1,71 @@
-.dashboard-grid {
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
 }
 
-.dashboard-card {
-    background: var(--surface-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 1.25rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dashboard-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.card-icon {
-    width: 48px;
-    height: 48px;
+.summary-card {
+    background: var(--bg-surface, #272732);
+    padding: 24px;
     border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-left: 5px solid;
+    transition: transform 0.2s;
 }
 
-.card-icon.purple {
-    background: rgba(168, 85, 247, 0.15);
-    color: #a855f7;
+.summary-card:hover {
+    transform: translateY(-5px);
 }
 
-.card-icon.blue {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
-}
-
-.card-icon.amber {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
-}
-
-.card-icon.green {
-    background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
-}
-
-.card-info h3 {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    margin-bottom: 0.25rem;
-}
-
-.card-info .card-value {
-    font-size: 1.65rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    line-height: 1.1;
-}
-
-.dashboard-section {
-    margin-top: 2rem;
-}
-
-.dashboard-section h3 {
+.summary-card h3 {
+    margin: 0 0 12px 0;
     font-size: 1rem;
-    font-weight: 700;
+    color: var(--text-secondary, #a1a1aa);
+    font-weight: 500;
+}
+
+.summary-card h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: var(--text-primary, #f0f0f5);
+}
+
+/* Cores das bordas dos cartões */
+.summary-card.entradas { border-color: #10b981; } /* Verde */
+.summary-card.saidas { border-color: #ef4444; } /* Vermelho */
+.summary-card.saldo.positivo { border-color: #3b82f6; } /* Azul */
+.summary-card.saldo.negativo { border-color: #f59e0b; } /* Laranja */
+
+.dashboard-content {
+    display: grid;
+    /* Alterado de 2fr 1fr para 1fr, pois o gráfico agora ocupa o ecrã inteiro */
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+
+.chart-section {
+    background: var(--bg-surface, #272732);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.chart-section h3 {
+    margin-top: 0;
     color: var(--text-primary);
-    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 12px;
+}
+
+/* Ajustes para ecrãs menores */
+@media (max-width: 768px) {
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
 }

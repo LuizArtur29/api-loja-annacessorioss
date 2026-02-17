@@ -1,146 +1,96 @@
-import { useState, useEffect } from 'react';
-import { LuPackage, LuUsers, LuReceipt, LuDollarSign } from 'react-icons/lu';
-import produtoService from '../../api/produtoService';
-import clienteService from '../../api/clienteService';
+import { useQuery } from '@tanstack/react-query';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import vendaService from '../../api/vendaService';
+import despesaService from '../../api/despesaService';
 import './Dashboard.css';
 
 function Dashboard() {
-    const [stats, setStats] = useState({
-        produtos: 0,
-        clientes: 0,
-        vendas: 0,
-        receita: 0,
-    });
-    const [loading, setLoading] = useState(true);
-    const [recentVendas, setRecentVendas] = useState([]);
-
-    useEffect(() => {
-        loadStats();
-    }, []);
-
-    const loadStats = async () => {
-        try {
-            const [prodRes, cliRes, venRes] = await Promise.all([
-                produtoService.getAll(),
-                clienteService.getAll(),
-                vendaService.getAll(),
-            ]);
-
-            const vendas = venRes.data;
-            const receita = vendas.reduce(
-                (sum, v) => sum + parseFloat(v.valorTotal || 0),
-                0
-            );
-
-            setStats({
-                produtos: prodRes.data.length,
-                clientes: cliRes.data.length,
-                vendas: vendas.length,
-                receita,
-            });
-
-            setRecentVendas(vendas.slice(-5).reverse());
-        } catch {
-            // API offline — exibe zeros
-        } finally {
-            setLoading(false);
+    // 1. Buscar Vendas (Entradas) com cache
+    const { data: vendas = [], isLoading: loadingVendas } = useQuery({
+        queryKey: ['vendas'],
+        queryFn: async () => {
+            const res = await vendaService.getAll();
+            return res.data;
         }
-    };
+    });
 
-    const formatCurrency = (value) =>
-        new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        }).format(value);
+    // 2. Buscar Despesas (Saídas) com cache
+    const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
+        queryKey: ['despesas'],
+        queryFn: async () => {
+            const res = await despesaService.getAll();
+            return res.data;
+        }
+    });
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
+    // 3. Cálculos Financeiros
+    const totalEntradas = vendas.reduce((acc, venda) => acc + venda.valorTotal, 0);
+    const totalSaidas = despesas.reduce((acc, despesa) => acc + despesa.valor, 0);
+    const saldoLiquido = totalEntradas - totalSaidas;
 
-    const cards = [
-        {
-            label: 'Produtos',
-            value: stats.produtos,
-            icon: <LuPackage />,
-            color: 'purple',
-        },
-        {
-            label: 'Clientes',
-            value: stats.clientes,
-            icon: <LuUsers />,
-            color: 'blue',
-        },
-        {
-            label: 'Vendas',
-            value: stats.vendas,
-            icon: <LuReceipt />,
-            color: 'amber',
-        },
-        {
-            label: 'Receita Total',
-            value: formatCurrency(stats.receita),
-            icon: <LuDollarSign />,
-            color: 'green',
-        },
+    // 4. Preparar Dados para o Gráfico
+    const dataGrafico = [
+        { name: 'Entradas', valor: totalEntradas, color: '#10b981' }, // Verde
+        { name: 'Saídas', valor: totalSaidas, color: '#ef4444' }     // Vermelho
     ];
 
-    return (
-        <div>
+    const formatCurrency = (value) =>
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+    // Pequeno feedback visual enquanto os dados carregam inicialmente
+    if (loadingVendas || loadingDespesas) {
+        return (
             <div className="page-header">
-                <h2>Dashboard</h2>
-                <p>Visão geral do seu negócio</p>
+                <h2>A carregar painel financeiro...</h2>
+            </div>
+        );
+    }
+
+    return (
+        <div className="dashboard-container">
+            <div className="page-header">
+                <h2>Painel Financeiro</h2>
+                <p>Visão geral do negócio</p>
             </div>
 
-            <div className="dashboard-grid">
-                {cards.map((card) => (
-                    <div className="dashboard-card" key={card.label}>
-                        <div className={`card-icon ${card.color}`}>{card.icon}</div>
-                        <div className="card-info">
-                            <h3>{card.label}</h3>
-                            <div className="card-value">
-                                {loading ? '...' : card.value}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            {/* Cartões de Resumo */}
+            <div className="cards-grid">
+                <div className="summary-card entradas">
+                    <h3>Entradas (Vendas)</h3>
+                    <h2>{formatCurrency(totalEntradas)}</h2>
+                </div>
+                <div className="summary-card saidas">
+                    <h3>Saídas (Despesas)</h3>
+                    <h2>{formatCurrency(totalSaidas)}</h2>
+                </div>
+                <div className={`summary-card saldo ${saldoLiquido >= 0 ? 'positivo' : 'negativo'}`}>
+                    <h3>Saldo Líquido</h3>
+                    <h2>{formatCurrency(saldoLiquido)}</h2>
+                </div>
             </div>
 
-            <div className="dashboard-section">
-                <h3>Últimas Vendas</h3>
-                {loading ? (
-                    <p style={{ color: 'var(--text-muted)' }}>Carregando...</p>
-                ) : recentVendas.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)' }}>Nenhuma venda registrada ainda.</p>
-                ) : (
-                    <div className="data-table-wrapper">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Cliente</th>
-                                    <th>Valor Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {recentVendas.map((v) => (
-                                    <tr key={v.id}>
-                                        <td>{formatDate(v.dataVenda)}</td>
-                                        <td>{v.clienteNome || 'Consumidor'}</td>
-                                        <td><strong>{formatCurrency(v.valorTotal)}</strong></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            <div className="dashboard-content">
+                {/* Gráfico de Barras */}
+                <div className="chart-section">
+                    <h3>Entradas vs Saídas</h3>
+                    <div style={{ height: 350, width: '100%', marginTop: '20px' }}>
+                        <ResponsiveContainer>
+                            <BarChart data={dataGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <XAxis dataKey="name" stroke="#a1a1aa" />
+                                <YAxis stroke="#a1a1aa" tickFormatter={(val) => `R$ ${val}`} />
+                                <Tooltip
+                                    formatter={(value) => formatCurrency(value)}
+                                    contentStyle={{ backgroundColor: '#1c1c27', borderColor: '#333', borderRadius: '8px', color: '#f0f0f5' }}
+                                />
+                                <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={100}>
+                                    {dataGrafico.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
