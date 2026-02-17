@@ -43,9 +43,9 @@ function Sidebar() {
     return (
         <aside className="sidebar">
             <div className="sidebar-header">
-                <div className="sidebar-logo">💎</div>
+                <div className="sidebar-logo">AC</div>
                 <div className="sidebar-brand">
-                    <h1>Bijuterias</h1>
+                    <h1>AC Acessórios</h1>
                     <span>Sistema de Gestão</span>
                 </div>
             </div>
@@ -69,6 +69,10 @@ function Sidebar() {
                     </div>
                 ))}
             </nav>
+            <div className="sidebar-footer">
+                <div className="sidebar-footer-dot" />
+                <span>Online</span>
+            </div>
         </aside>
     );
 }

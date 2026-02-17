@@ -8,15 +8,16 @@
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .venda-detail-info .detail-field label {
     font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     color: var(--text-muted);
-    font-weight: 600;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
 }
 
 .venda-detail-info .detail-field p {
@@ -31,7 +32,8 @@
     font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
+    font-family: 'Outfit', sans-serif;
 }
 
 .detail-item {
@@ -39,7 +41,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
     font-size: 0.85rem;
 }
 
@@ -58,7 +60,7 @@
 }
 
 .detail-item-sub {
-    color: var(--accent-color);
+    color: var(--accent-dark);
     font-weight: 700;
 }
 
@@ -72,5 +74,6 @@
 }
 
 .detail-total .total-val {
-    color: var(--accent-color);
+    color: var(--accent-dark);
+    font-family: 'Playfair Display', serif;
 }

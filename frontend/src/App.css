@@ -1,38 +1,51 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&display=swap');
 
 :root {
     /* Background */
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #111118;
+    --bg-primary: #FAF8F4;
+    --bg-secondary: #F3EDE4;
 
     /* Surfaces */
-    --surface-primary: #16161e;
-    --surface-secondary: #1c1c27;
-    --surface-hover: rgba(255, 255, 255, 0.04);
+    --surface-primary: #FFFFFF;
+    --surface-secondary: #F7F3EE;
+    --surface-hover: rgba(212, 160, 23, 0.06);
 
     /* Text */
-    --text-primary: #f0f0f5;
-    --text-secondary: #a0a0b8;
-    --text-muted: #5c5c7a;
+    --text-primary: #2C2418;
+    --text-secondary: #7A6E5D;
+    --text-muted: #B0A694;
 
-    /* Accent — Amber / Gold */
-    --accent-color: #f59e0b;
-    --accent-light: #fbbf24;
-    --accent-alpha: rgba(245, 158, 11, 0.12);
-    --accent-glow: rgba(245, 158, 11, 0.25);
-    --gradient-primary: linear-gradient(135deg, #f59e0b, #d97706);
+    /* Accent — Gold */
+    --accent-color: #D4A017;
+    --accent-light: #E8BF4A;
+    --accent-dark: #B8860B;
+    --accent-alpha: rgba(212, 160, 23, 0.10);
+    --accent-glow: rgba(212, 160, 23, 0.20);
+    --gradient-primary: linear-gradient(135deg, #D4A017, #B8860B);
 
     /* Borders */
-    --border-color: rgba(255, 255, 255, 0.07);
+    --border-color: #E8E0D4;
+    --border-light: #F0EAE0;
 
     /* Semantic */
-    --danger-color: #ef4444;
-    --success-color: #22c55e;
+    --danger-color: #C0392B;
+    --danger-bg: rgba(192, 57, 43, 0.08);
+    --success-color: #27AE60;
+    --success-bg: rgba(39, 174, 96, 0.08);
+    --info-color: #2980B9;
+    --info-bg: rgba(41, 128, 185, 0.08);
 
     /* Radius */
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
+    --radius-xl: 20px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(44, 36, 24, 0.04);
+    --shadow-md: 0 4px 12px rgba(44, 36, 24, 0.06);
+    --shadow-lg: 0 8px 24px rgba(44, 36, 24, 0.08);
+    --shadow-gold: 0 4px 16px rgba(212, 160, 23, 0.15);
 }
 
 /* Reset */
@@ -51,11 +64,20 @@ html {
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Playfair Display', 'Georgia', serif;
 }
 
 a {
@@ -64,13 +86,13 @@ a {
 }
 
 button {
-    font-family: inherit;
+    font-family: 'Outfit', inherit;
 }
 
 input,
 select,
 textarea {
-    font-family: inherit;
+    font-family: 'Outfit', inherit;
 }
 
 /* Scrollbar */
@@ -79,19 +101,19 @@ textarea {
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--border-color);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--text-muted);
 }
 
 /* Toast styling override */
 .go4109123758 {
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Outfit', sans-serif !important;
 }

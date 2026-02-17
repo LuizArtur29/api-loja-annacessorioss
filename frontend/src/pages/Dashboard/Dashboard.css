@@ -11,59 +11,80 @@
 }
 
 .summary-card {
-    background: var(--bg-surface, #272732);
+    background: var(--surface-primary);
     padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
     border-left: 5px solid;
-    transition: transform 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
 }
 
 .summary-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
 }
 
 .summary-card h3 {
     margin: 0 0 12px 0;
-    font-size: 1rem;
-    color: var(--text-secondary, #a1a1aa);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
     font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .summary-card h2 {
     margin: 0;
     font-size: 2rem;
-    color: var(--text-primary, #f0f0f5);
+    color: var(--text-primary);
+    font-family: 'Playfair Display', serif;
 }
 
-/* Cores das bordas dos cartões */
-.summary-card.entradas { border-color: #10b981; } /* Verde */
-.summary-card.saidas { border-color: #ef4444; } /* Vermelho */
-.summary-card.saldo.positivo { border-color: #3b82f6; } /* Azul */
-.summary-card.saldo.negativo { border-color: #f59e0b; } /* Laranja */
+/* Card border colors */
+.summary-card.entradas {
+    border-color: #27AE60;
+}
+
+.summary-card.saidas {
+    border-color: #C0392B;
+}
+
+.summary-card.saldo.positivo {
+    border-color: var(--accent-color);
+}
+
+.summary-card.saldo.negativo {
+    border-color: #E67E22;
+}
 
 .dashboard-content {
     display: grid;
-    /* Alterado de 2fr 1fr para 1fr, pois o gráfico agora ocupa o ecrã inteiro */
     grid-template-columns: 1fr;
     gap: 24px;
 }
 
 .chart-section {
-    background: var(--bg-surface, #272732);
+    background: var(--surface-primary);
     padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
 }
 
 .chart-section h3 {
     margin-top: 0;
     color: var(--text-primary);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid var(--border-light);
     padding-bottom: 12px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
 }
 
-/* Ajustes para ecrãs menores */
+/* Responsive */
 @media (max-width: 768px) {
     .cards-grid {
         grid-template-columns: 1fr;

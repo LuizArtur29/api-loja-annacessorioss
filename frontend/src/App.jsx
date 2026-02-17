@@ -28,11 +28,13 @@ function App() {
                     position="top-right"
                     toastOptions={{
                         style: {
-                            background: '#1c1c27',
-                            color: '#f0f0f5',
-                            border: '1px solid rgba(255,255,255,0.07)',
+                            background: '#FFFFFF',
+                            color: '#2C2418',
+                            border: '1px solid #E8E0D4',
                             borderRadius: '12px',
                             fontSize: '0.85rem',
+                            fontFamily: "'Outfit', sans-serif",
+                            boxShadow: '0 4px 12px rgba(44, 36, 24, 0.08)',
                         },
                     }}
                 />

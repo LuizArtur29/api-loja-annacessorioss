@@ -1,8 +1,9 @@
 .data-table-wrapper {
     background: var(--surface-primary);
     border: 1px solid var(--border-color);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
 }
 
 .data-table-toolbar {
@@ -10,7 +11,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
     gap: 1rem;
     flex-wrap: wrap;
 }
@@ -24,11 +25,12 @@
     padding: 0 0.75rem;
     flex: 1;
     max-width: 320px;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .data-table-search:focus-within {
     border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-alpha);
 }
 
 .data-table-search svg {
@@ -64,17 +66,22 @@
     transition: all 0.2s ease;
     text-decoration: none;
     white-space: nowrap;
+    font-family: 'Outfit', sans-serif;
 }
 
 .btn-primary {
     background: var(--gradient-primary);
     color: #fff;
-    box-shadow: 0 2px 10px var(--accent-glow);
+    box-shadow: var(--shadow-gold);
 }
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px var(--accent-glow);
+    box-shadow: 0 6px 20px rgba(212, 160, 23, 0.25);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .btn-ghost {
@@ -86,7 +93,7 @@
 
 .btn-ghost:hover {
     background: var(--surface-hover);
-    color: var(--text-primary);
+    color: var(--accent-dark);
 }
 
 .btn-danger {
@@ -97,7 +104,7 @@
 }
 
 .btn-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
 }
 
 /* Table */
@@ -110,12 +117,13 @@
     padding: 0.75rem 1.25rem;
     text-align: left;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     color: var(--text-muted);
     background: var(--surface-secondary);
     border-bottom: 1px solid var(--border-color);
+    font-family: 'Outfit', sans-serif;
 }
 
 .data-table tbody tr {
@@ -130,7 +138,7 @@
     padding: 0.85rem 1.25rem;
     font-size: 0.875rem;
     color: var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .data-table tbody tr:last-child td {

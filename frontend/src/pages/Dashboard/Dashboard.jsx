@@ -30,8 +30,8 @@ function Dashboard() {
 
     // 4. Preparar Dados para o Gráfico
     const dataGrafico = [
-        { name: 'Entradas', valor: totalEntradas, color: '#10b981' }, // Verde
-        { name: 'Saídas', valor: totalSaidas, color: '#ef4444' }     // Vermelho
+        { name: 'Entradas', valor: totalEntradas, color: '#27AE60' },
+        { name: 'Saídas', valor: totalSaidas, color: '#C0392B' }
     ];
 
     const formatCurrency = (value) =>
@@ -76,11 +76,11 @@ function Dashboard() {
                     <div style={{ height: 350, width: '100%', marginTop: '20px' }}>
                         <ResponsiveContainer>
                             <BarChart data={dataGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <XAxis dataKey="name" stroke="#a1a1aa" />
-                                <YAxis stroke="#a1a1aa" tickFormatter={(val) => `R$ ${val}`} />
+                                <XAxis dataKey="name" stroke="#7A6E5D" tick={{ fontFamily: 'Outfit' }} />
+                                <YAxis stroke="#7A6E5D" tickFormatter={(val) => `R$ ${val}`} tick={{ fontFamily: 'Outfit' }} />
                                 <Tooltip
                                     formatter={(value) => formatCurrency(value)}
-                                    contentStyle={{ backgroundColor: '#1c1c27', borderColor: '#333', borderRadius: '8px', color: '#f0f0f5' }}
+                                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E8E0D4', borderRadius: '12px', color: '#2C2418', fontFamily: 'Outfit', boxShadow: '0 4px 12px rgba(44, 36, 24, 0.08)' }}
                                 />
                                 <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={100}>
                                     {dataGrafico.map((entry, index) => (
