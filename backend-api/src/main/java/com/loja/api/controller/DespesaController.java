@@ -24,9 +24,20 @@ public class DespesaController {
         return ResponseEntity.ok(service.getAll());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<DespesaResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
+    }
+
     @PostMapping
     public ResponseEntity<DespesaResponseDTO> create(@RequestBody DespesaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(dto));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<DespesaResponseDTO> update(@PathVariable Long id,
+            @RequestBody DespesaRequestDTO dto) {
+        return ResponseEntity.ok(service.update(id, dto));
     }
 
     @DeleteMapping("/{id}")

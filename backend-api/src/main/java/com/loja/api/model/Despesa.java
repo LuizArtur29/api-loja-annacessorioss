@@ -1,6 +1,8 @@
 package com.loja.api.model;
 
 import com.loja.api.model.enums.CategoriaDespesa;
+import com.loja.api.model.enums.FormaPagamento;
+import com.loja.api.model.enums.StatusPagamento;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,4 +34,15 @@ public class Despesa {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private CategoriaDespesa categoria;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private StatusPagamento status = StatusPagamento.PENDENTE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "forma_pagamento", length = 20)
+    private FormaPagamento formaPagamento;
+
+    @Column(columnDefinition = "TEXT")
+    private String observacoes;
 }

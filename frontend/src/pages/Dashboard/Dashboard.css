@@ -1,9 +1,43 @@
 .dashboard-container {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 28px;
 }
 
+/* ── Filtros ── */
+.dashboard-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+}
+
+.filter-select {
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--surface-primary);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ── Summary Cards ── */
 .cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -12,14 +46,29 @@
 
 .summary-card {
     background: var(--surface-primary);
-    padding: 24px;
+    padding: 28px 24px;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    border-left: 5px solid;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 4px solid;
     border-top: none;
     border-right: none;
     border-bottom: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    opacity: 0.04;
+    transform: translate(30%, -30%);
+    pointer-events: none;
 }
 
 .summary-card:hover {
@@ -27,62 +76,178 @@
     box-shadow: var(--shadow-lg);
 }
 
+.summary-card .card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    display: block;
+    line-height: 1;
+}
+
 .summary-card h3 {
-    margin: 0 0 12px 0;
-    font-size: 0.85rem;
+    margin: 0 0 10px 0;
+    font-size: 0.78rem;
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: 600;
     font-family: 'Outfit', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
 }
 
 .summary-card h2 {
     margin: 0;
-    font-size: 2rem;
+    font-size: 1.85rem;
     color: var(--text-primary);
     font-family: 'Playfair Display', serif;
+    font-weight: 700;
 }
 
-/* Card border colors */
+/* Card border & accent colors */
 .summary-card.entradas {
-    border-color: #27AE60;
+    border-color: var(--success-color);
+}
+
+.summary-card.entradas::after {
+    background: var(--success-color);
 }
 
 .summary-card.saidas {
-    border-color: #C0392B;
+    border-color: var(--danger-color);
+}
+
+.summary-card.saidas::after {
+    background: var(--danger-color);
 }
 
 .summary-card.saldo.positivo {
     border-color: var(--accent-color);
 }
 
+.summary-card.saldo.positivo::after {
+    background: var(--accent-color);
+}
+
 .summary-card.saldo.negativo {
     border-color: #E67E22;
 }
 
+.summary-card.saldo.negativo::after {
+    background: #E67E22;
+}
+
+/* ── Chart Sections ── */
 .dashboard-charts {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Dois gráficos lado a lado */
+    grid-template-columns: 1fr 1fr;
     gap: 24px;
 }
 
 .chart-section {
-    background: var(--bg-surface, #272732);
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: var(--surface-primary);
+    padding: 28px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
+    transition: box-shadow 0.25s ease;
+}
+
+.chart-section:hover {
+    box-shadow: var(--shadow-lg);
 }
 
 .chart-section h3 {
-    margin-top: 0;
+    margin: 0 0 4px 0;
+    font-size: 1.1rem;
     color: var(--text-primary);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    padding-bottom: 12px;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
 }
 
+.chart-section .chart-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    margin: 0 0 20px 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+/* Custom recharts tooltip */
+.custom-tooltip {
+    background: var(--surface-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    box-shadow: var(--shadow-md);
+    font-family: 'Outfit', sans-serif;
+}
+
+.custom-tooltip .tooltip-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.custom-tooltip .tooltip-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-family: 'Playfair Display', serif;
+}
+
+/* Pie chart custom label */
+.pie-label-text {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    fill: var(--text-secondary);
+}
+
+/* Empty state */
+.chart-empty-state {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    gap: 8px;
+    padding: 40px 0;
+}
+
+.chart-empty-state .empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.4;
+}
+
+.chart-empty-state span {
+    font-size: 0.88rem;
+}
+
+/* Legend styling override */
+.recharts-legend-item-text {
+    color: var(--text-secondary) !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+}
+
+/* ── Responsive ── */
 @media (max-width: 992px) {
     .dashboard-charts {
-        grid-template-columns: 1fr; /* Fica um em cima do outro no telemóvel */
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-section {
+        padding: 20px 16px;
     }
 }

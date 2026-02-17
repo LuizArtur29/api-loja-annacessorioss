@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { NumericFormat } from 'react-number-format';
@@ -20,17 +20,26 @@ function Despesas() {
     });
 
     const [modalOpen, setModalOpen] = useState(false);
+    const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, despesa: null });
+
+    /* ── Filtros de Mês/Ano ── */
+    const now = new Date();
+    const [mesFiltro, setMesFiltro] = useState(now.getMonth() + 1);
+    const [anoFiltro, setAnoFiltro] = useState(now.getFullYear());
 
     const [form, setForm] = useState({
         descricao: '',
         valor: '',
         dataPagamento: '',
-        categoria: ''
+        categoria: '',
+        status: 'PENDENTE',
+        formaPagamento: '',
+        observacoes: ''
     });
 
-    // Opções de categorias que definimos no Enum do Spring Boot
+    /* ── Opções de Select ── */
     const categoriaOptions = [
         { value: 'MERCADORIA', label: 'Mercadorias e Estoque' },
         { value: 'EMBALAGEM', label: 'Embalagens e Envios' },
@@ -38,6 +47,20 @@ function Despesas() {
         { value: 'MARKETING', label: 'Marketing e Anúncios' },
         { value: 'IMPOSTO', label: 'Impostos e Taxas' },
         { value: 'OUTROS', label: 'Outros' }
+    ];
+
+    const statusOptions = [
+        { value: 'PAGO', label: '✅ Pago' },
+        { value: 'PENDENTE', label: '🕐 Pendente' },
+        { value: 'ATRASADO', label: '⚠️ Atrasado' }
+    ];
+
+    const formaPagamentoOptions = [
+        { value: 'PIX', label: 'Pix' },
+        { value: 'CARTAO', label: 'Cartão' },
+        { value: 'DINHEIRO', label: 'Dinheiro' },
+        { value: 'TRANSFERENCIA', label: 'Transferência' },
+        { value: 'BOLETO', label: 'Boleto' }
     ];
 
     const customSelectStyles = {
@@ -48,7 +71,7 @@ function Despesas() {
             borderRadius: '10px',
             minHeight: '42px',
             boxShadow: 'none',
-            '&:hover': { borderColor: state.isFocused ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.15)' },
+            '&:hover': { borderColor: state.isFocused ? 'var(--accent-color)' : 'var(--border-color)' },
             cursor: 'pointer'
         }),
         menu: (provided) => ({
@@ -69,12 +92,45 @@ function Despesas() {
         placeholder: (provided) => ({ ...provided, color: 'var(--text-muted)' })
     };
 
+    /* ── Filtrar despesas pelo mês/ano selecionado ── */
+    const despesasFiltradas = useMemo(() => {
+        return despesas.filter(d => {
+            if (!d.dataPagamento) return false;
+            const [ano, mes] = d.dataPagamento.split('-').map(Number);
+            return mes === mesFiltro && ano === anoFiltro;
+        });
+    }, [despesas, mesFiltro, anoFiltro]);
+
+    /* ── Handlers ── */
+    const resetForm = () => setForm({
+        descricao: '', valor: '', dataPagamento: '', categoria: '',
+        status: 'PENDENTE', formaPagamento: '', observacoes: ''
+    });
+
     const openNew = () => {
+        setEditing(null);
         setForm({
             descricao: '',
             valor: '',
             dataPagamento: new Date().toISOString().split('T')[0],
-            categoria: ''
+            categoria: '',
+            status: 'PENDENTE',
+            formaPagamento: '',
+            observacoes: ''
+        });
+        setModalOpen(true);
+    };
+
+    const openEdit = (desp) => {
+        setEditing(desp);
+        setForm({
+            descricao: desp.descricao,
+            valor: desp.valor,
+            dataPagamento: desp.dataPagamento,
+            categoria: desp.categoria || '',
+            status: desp.status || 'PENDENTE',
+            formaPagamento: desp.formaPagamento || '',
+            observacoes: desp.observacoes || ''
         });
         setModalOpen(true);
     };
@@ -85,16 +141,23 @@ function Despesas() {
             return;
         }
         setSaving(true);
+        const payload = {
+            ...form,
+            valor: parseFloat(form.valor),
+            formaPagamento: form.formaPagamento || null
+        };
         try {
-            await despesaService.create({
-                ...form,
-                valor: parseFloat(form.valor)
-            });
-            toast.success('Despesa registada');
+            if (editing) {
+                await despesaService.update(editing.id, payload);
+                toast.success('Despesa atualizada');
+            } else {
+                await despesaService.create(payload);
+                toast.success('Despesa registrada');
+            }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['despesas'] });
         } catch (err) {
-            toast.error('Erro ao salvar despesa');
+            toast.error(err.response?.data?.message || 'Erro ao salvar despesa');
         } finally {
             setSaving(false);
         }
@@ -120,44 +183,86 @@ function Despesas() {
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
     const formatDate = (dateString) => {
+        if (!dateString) return '—';
         const [year, month, day] = dateString.split('-');
         return `${day}/${month}/${year}`;
     };
 
     const getCategoriaLabel = (value) => {
         const cat = categoriaOptions.find(c => c.value === value);
-        return cat ? cat.label : value;
+        return cat ? cat.label : value || '—';
     };
 
+    const getStatusBadge = (status) => {
+        const map = {
+            PAGO: { label: 'Pago', color: 'var(--success-color)', bg: 'var(--success-bg)' },
+            PENDENTE: { label: 'Pendente', color: 'var(--accent-dark)', bg: 'var(--accent-alpha)' },
+            ATRASADO: { label: 'Atrasado', color: 'var(--danger-color)', bg: 'var(--danger-bg)' }
+        };
+        const s = map[status] || map.PENDENTE;
+        return (
+            <span style={{
+                background: s.bg, color: s.color,
+                padding: '3px 10px', borderRadius: '12px',
+                fontSize: '0.78rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif',
+                whiteSpace: 'nowrap'
+            }}>
+                {s.label}
+            </span>
+        );
+    };
+
+    const getFormaPgtoLabel = (value) => {
+        const f = formaPagamentoOptions.find(o => o.value === value);
+        return f ? f.label : '—';
+    };
+
+    /* ── Meses para o seletor ── */
+    const meses = [
+        { value: 1, label: 'Janeiro' }, { value: 2, label: 'Fevereiro' },
+        { value: 3, label: 'Março' }, { value: 4, label: 'Abril' },
+        { value: 5, label: 'Maio' }, { value: 6, label: 'Junho' },
+        { value: 7, label: 'Julho' }, { value: 8, label: 'Agosto' },
+        { value: 9, label: 'Setembro' }, { value: 10, label: 'Outubro' },
+        { value: 11, label: 'Novembro' }, { value: 12, label: 'Dezembro' }
+    ];
+
+    const anos = [];
+    for (let y = now.getFullYear(); y >= now.getFullYear() - 5; y--) anos.push(y);
+
+    /* ── Colunas da tabela ── */
     const columns = [
         { key: 'id', header: 'ID' },
         { key: 'descricao', header: 'Descrição' },
         {
-            key: 'categoria',
-            header: 'Categoria',
+            key: 'categoria', header: 'Categoria',
             render: (row) => (
                 <span style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.85rem'
+                    background: 'var(--accent-alpha)', padding: '3px 8px',
+                    borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-primary)'
                 }}>
                     {getCategoriaLabel(row.categoria)}
                 </span>
             )
         },
         {
-            key: 'valor',
-            header: 'Valor',
+            key: 'valor', header: 'Valor',
             render: (row) => (
-                <span style={{ color: 'var(--danger-color)', fontWeight: '500' }}>
+                <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>
                     {formatCurrency(row.valor)}
                 </span>
             ),
         },
         {
-            key: 'dataPagamento',
-            header: 'Data de Pagamento',
+            key: 'status', header: 'Status',
+            render: (row) => getStatusBadge(row.status)
+        },
+        {
+            key: 'formaPagamento', header: 'Forma Pgto',
+            render: (row) => getFormaPgtoLabel(row.formaPagamento)
+        },
+        {
+            key: 'dataPagamento', header: 'Data',
             render: (row) => formatDate(row.dataPagamento),
         },
     ];
@@ -169,20 +274,64 @@ function Despesas() {
                 <p>Faça a gestão das contas e gastos da loja</p>
             </div>
 
+            {/* ── Filtros de Mês/Ano ── */}
+            <div style={{
+                display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center',
+                flexWrap: 'wrap'
+            }}>
+                <span style={{
+                    fontSize: '0.82rem', color: 'var(--text-secondary)',
+                    fontWeight: 600, fontFamily: 'Outfit, sans-serif'
+                }}>
+                    Período:
+                </span>
+                <select
+                    value={mesFiltro}
+                    onChange={(e) => setMesFiltro(Number(e.target.value))}
+                    style={{
+                        padding: '6px 12px', borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--surface-primary)',
+                        color: 'var(--text-primary)', fontSize: '0.88rem',
+                        fontFamily: 'Outfit, sans-serif', cursor: 'pointer'
+                    }}
+                >
+                    {meses.map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                </select>
+                <select
+                    value={anoFiltro}
+                    onChange={(e) => setAnoFiltro(Number(e.target.value))}
+                    style={{
+                        padding: '6px 12px', borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--surface-primary)',
+                        color: 'var(--text-primary)', fontSize: '0.88rem',
+                        fontFamily: 'Outfit, sans-serif', cursor: 'pointer'
+                    }}
+                >
+                    {anos.map(a => (
+                        <option key={a} value={a}>{a}</option>
+                    ))}
+                </select>
+            </div>
+
             <DataTable
                 columns={columns}
-                data={despesas}
+                data={despesasFiltradas}
                 loading={loading}
                 searchPlaceholder="Procurar despesa..."
                 onAdd={openNew}
                 addLabel="Nova Despesa"
+                onEdit={openEdit}
                 onDelete={handleDelete}
             />
 
             <Modal
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
-                title="Registar Nova Despesa"
+                title={editing ? 'Editar Despesa' : 'Registrar Nova Despesa'}
                 onSubmit={handleSubmit}
                 loading={saving}
             >
@@ -198,16 +347,28 @@ function Despesas() {
                     />
                 </div>
 
-                <div className="form-group">
-                    <label>Categoria *</label>
-                    <Select
-                        options={categoriaOptions}
-                        value={categoriaOptions.find(c => c.value === form.categoria) || null}
-                        onChange={(option) => setForm({ ...form, categoria: option ? option.value : '' })}
-                        placeholder="Selecione a categoria..."
-                        isSearchable={false}
-                        styles={customSelectStyles}
-                    />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                        <label>Categoria *</label>
+                        <Select
+                            options={categoriaOptions}
+                            value={categoriaOptions.find(c => c.value === form.categoria) || null}
+                            onChange={(option) => setForm({ ...form, categoria: option ? option.value : '' })}
+                            placeholder="Selecione..."
+                            isSearchable={false}
+                            styles={customSelectStyles}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Status *</label>
+                        <Select
+                            options={statusOptions}
+                            value={statusOptions.find(s => s.value === form.status) || statusOptions[1]}
+                            onChange={(option) => setForm({ ...form, status: option ? option.value : 'PENDENTE' })}
+                            isSearchable={false}
+                            styles={customSelectStyles}
+                        />
+                    </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -225,7 +386,7 @@ function Despesas() {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Data de Pagamento *</label>
+                        <label>Data *</label>
                         <input
                             type="date"
                             name="dataPagamento"
@@ -233,6 +394,32 @@ function Despesas() {
                             onChange={(e) => setForm({ ...form, dataPagamento: e.target.value })}
                         />
                     </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                        <label>Forma de Pagamento</label>
+                        <Select
+                            options={formaPagamentoOptions}
+                            value={formaPagamentoOptions.find(f => f.value === form.formaPagamento) || null}
+                            onChange={(option) => setForm({ ...form, formaPagamento: option ? option.value : '' })}
+                            placeholder="Selecione (opcional)..."
+                            isClearable
+                            isSearchable={false}
+                            styles={customSelectStyles}
+                        />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label>Observações</label>
+                    <textarea
+                        name="observacoes"
+                        value={form.observacoes}
+                        onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                        placeholder="Anotações opcionais sobre esta despesa..."
+                        rows={3}
+                    />
                 </div>
             </Modal>
 

@@ -4,6 +4,7 @@ import com.loja.api.dto.DespesaRequestDTO;
 import com.loja.api.dto.DespesaResponseDTO;
 import com.loja.api.exception.ResourceNotFoundException;
 import com.loja.api.model.Despesa;
+import com.loja.api.model.enums.StatusPagamento;
 import com.loja.api.repository.DespesaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +28,27 @@ public class DespesaService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public DespesaResponseDTO getById(Long id) {
+        Despesa despesa = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Despesa não encontrada com o ID: " + id));
+        return new DespesaResponseDTO(despesa);
+    }
+
     @Transactional
     public DespesaResponseDTO create(DespesaRequestDTO dto) {
         Despesa despesa = new Despesa();
-        despesa.setDescricao(dto.descricao());
-        despesa.setValor(dto.valor());
-        despesa.setDataPagamento(dto.dataPagamento());
-        despesa.setCategoria(dto.categoria());
+        mapDtoToEntity(dto, despesa);
+
+        despesa = repository.save(despesa);
+        return new DespesaResponseDTO(despesa);
+    }
+
+    @Transactional
+    public DespesaResponseDTO update(Long id, DespesaRequestDTO dto) {
+        Despesa despesa = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Despesa não encontrada com o ID: " + id));
+        mapDtoToEntity(dto, despesa);
 
         despesa = repository.save(despesa);
         return new DespesaResponseDTO(despesa);
@@ -45,5 +60,15 @@ public class DespesaService {
             throw new ResourceNotFoundException("Despesa não encontrada com o ID: " + id);
         }
         repository.deleteById(id);
+    }
+
+    private void mapDtoToEntity(DespesaRequestDTO dto, Despesa despesa) {
+        despesa.setDescricao(dto.descricao());
+        despesa.setValor(dto.valor());
+        despesa.setDataPagamento(dto.dataPagamento());
+        despesa.setCategoria(dto.categoria());
+        despesa.setStatus(dto.status() != null ? dto.status() : StatusPagamento.PENDENTE);
+        despesa.setFormaPagamento(dto.formaPagamento());
+        despesa.setObservacoes(dto.observacoes());
     }
 }

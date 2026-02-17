@@ -95,7 +95,7 @@ function Produtos() {
             descricao: prod.descricao || '',
             precoVenda: prod.precoVenda,
             quantidadeEstoque: prod.quantidadeEstoque,
-            categoriaId: prod.categoria.id, // Ajustado para pegar o ID correto do objeto aninhado do back-end
+            categoriaId: prod.categoriaId,
         });
         setModalOpen(true);
     };
@@ -159,7 +159,7 @@ function Produtos() {
         {
             header: 'Categoria',
             key: 'categoriaNome',
-            render: (row) => row.categoria?.nome || '—' // Previne erros se a categoria vier nula
+            render: (row) => row.categoriaNome || '—'
         },
         {
             header: 'Preço',
