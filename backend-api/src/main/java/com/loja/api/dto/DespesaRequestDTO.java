@@ -8,11 +8,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record DespesaRequestDTO(
-        String descricao,
-        BigDecimal valor,
-        LocalDate dataPagamento,
-        CategoriaDespesa categoria,
-        StatusPagamento status,
-        FormaPagamento formaPagamento,
-        String observacoes) {
+                String descricao,
+                BigDecimal valor,
+                LocalDate dataPagamento,
+                CategoriaDespesa categoria,
+                StatusPagamento status,
+                FormaPagamento formaPagamento,
+                String observacoes,
+                Integer parcelas) {
 }

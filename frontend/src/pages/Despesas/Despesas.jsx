@@ -36,7 +36,8 @@ function Despesas() {
         categoria: '',
         status: 'PENDENTE',
         formaPagamento: '',
-        observacoes: ''
+        observacoes: '',
+        parcelas: 1
     });
 
     /* ── Opções de Select ── */
@@ -104,7 +105,7 @@ function Despesas() {
     /* ── Handlers ── */
     const resetForm = () => setForm({
         descricao: '', valor: '', dataPagamento: '', categoria: '',
-        status: 'PENDENTE', formaPagamento: '', observacoes: ''
+        status: 'PENDENTE', formaPagamento: '', observacoes: '', parcelas: 1
     });
 
     const openNew = () => {
@@ -116,7 +117,8 @@ function Despesas() {
             categoria: '',
             status: 'PENDENTE',
             formaPagamento: '',
-            observacoes: ''
+            observacoes: '',
+            parcelas: 1
         });
         setModalOpen(true);
     };
@@ -144,7 +146,8 @@ function Despesas() {
         const payload = {
             ...form,
             valor: parseFloat(form.valor),
-            formaPagamento: form.formaPagamento || null
+            formaPagamento: form.formaPagamento || null,
+            parcelas: editing ? undefined : (parseInt(form.parcelas) || 1)
         };
         try {
             if (editing) {
@@ -152,7 +155,8 @@ function Despesas() {
                 toast.success('Despesa atualizada');
             } else {
                 await despesaService.create(payload);
-                toast.success('Despesa registrada');
+                const qtd = parseInt(form.parcelas) || 1;
+                toast.success(qtd > 1 ? `${qtd} parcelas registradas!` : 'Despesa registrada');
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['despesas'] });
@@ -265,6 +269,19 @@ function Despesas() {
             key: 'dataPagamento', header: 'Data',
             render: (row) => formatDate(row.dataPagamento),
         },
+        {
+            key: 'parcela', header: 'Parcela',
+            render: (row) => row.parcelas > 1
+                ? (
+                    <span style={{
+                        background: 'var(--accent-alpha)', color: 'var(--accent-dark)',
+                        padding: '3px 8px', borderRadius: '10px',
+                        fontSize: '0.78rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif'
+                    }}>
+                        {row.parcelaAtual}/{row.parcelas}
+                    </span>
+                ) : '—'
+        },
     ];
 
     return (
@@ -373,7 +390,7 @@ function Despesas() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div className="form-group">
-                        <label>Valor *</label>
+                        <label>Valor Total *</label>
                         <NumericFormat
                             value={form.valor}
                             onValueChange={(values) => setForm({ ...form, valor: values.value })}
@@ -395,6 +412,36 @@ function Despesas() {
                         />
                     </div>
                 </div>
+
+                {!editing && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="form-group">
+                            <label>Parcelas</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="48"
+                                value={form.parcelas}
+                                onChange={(e) => setForm({ ...form, parcelas: e.target.value })}
+                                placeholder="1"
+                            />
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                            {parseInt(form.parcelas) > 1 && form.valor && (
+                                <span style={{
+                                    fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem',
+                                    color: 'var(--accent-dark)', fontWeight: 500
+                                }}>
+                                    {parseInt(form.parcelas)}x de{' '}
+                                    <strong>
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+                                            .format(parseFloat(form.valor) / parseInt(form.parcelas))}
+                                    </strong>
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                     <div className="form-group">

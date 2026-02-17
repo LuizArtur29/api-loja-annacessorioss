@@ -31,9 +31,18 @@ function NovaVenda() {
 
     const [saving, setSaving] = useState(false);
     const [clienteId, setClienteId] = useState('');
+    const [formaPagamento, setFormaPagamento] = useState('');
     const [selectedProdutoOption, setSelectedProdutoOption] = useState(null);
     const [quantidade, setQuantidade] = useState(1);
     const [itens, setItens] = useState([]);
+
+    const formaPagamentoOptions = [
+        { value: 'PIX', label: '📱 Pix' },
+        { value: 'CARTAO', label: '💳 Cartão' },
+        { value: 'DINHEIRO', label: '💵 Dinheiro' },
+        { value: 'TRANSFERENCIA', label: '🏦 Transferência' },
+        { value: 'BOLETO', label: '📄 Boleto' }
+    ];
 
     const formatCurrency = (value) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -136,6 +145,7 @@ function NovaVenda() {
         try {
             const payload = {
                 clienteId: clienteId ? parseInt(clienteId) : null,
+                formaPagamento: formaPagamento || null,
                 itens: itens.map((i) => ({
                     produtoId: i.produtoId,
                     quantidade: i.quantidade,
@@ -237,6 +247,19 @@ function NovaVenda() {
                             isClearable
                             styles={customSelectStyles}
                             noOptionsMessage={() => "Cliente não encontrado"}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label>Forma de Pagamento</label>
+                        <Select
+                            options={formaPagamentoOptions}
+                            value={formaPagamentoOptions.find(f => f.value === formaPagamento) || null}
+                            onChange={(option) => setFormaPagamento(option ? option.value : '')}
+                            placeholder="Selecione o pagamento..."
+                            isClearable
+                            isSearchable={false}
+                            styles={customSelectStyles}
                         />
                     </div>
 

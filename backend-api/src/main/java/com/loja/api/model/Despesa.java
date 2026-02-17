@@ -45,4 +45,10 @@ public class Despesa {
 
     @Column(columnDefinition = "TEXT")
     private String observacoes;
+
+    @Column(nullable = false)
+    private Integer parcelas = 1;
+
+    @Column(name = "parcela_atual", nullable = false)
+    private Integer parcelaAtual = 1;
 }

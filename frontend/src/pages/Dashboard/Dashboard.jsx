@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    Cell, PieChart, Pie, Legend, CartesianGrid
+    Cell, PieChart, Pie, Legend, CartesianGrid,
+    BarChart, Bar
 } from 'recharts';
 import vendaService from '../../api/vendaService';
 import despesaService from '../../api/despesaService';
@@ -77,8 +78,15 @@ function Dashboard() {
     const vendasFiltradas = useMemo(() => {
         return vendas.filter(v => {
             if (!v.dataVenda) return false;
-            const d = new Date(v.dataVenda);
-            return (d.getMonth() + 1) === mesFiltro && d.getFullYear() === anoFiltro;
+            let ano, mes;
+            if (Array.isArray(v.dataVenda)) {
+                // Jackson LocalDateTime sem config: [2026,2,17,20,30,0]
+                [ano, mes] = v.dataVenda;
+            } else {
+                const str = String(v.dataVenda);
+                [ano, mes] = str.split(/[-T]/).map(Number);
+            }
+            return mes === mesFiltro && ano === anoFiltro;
         });
     }, [vendas, mesFiltro, anoFiltro]);
 
@@ -126,8 +134,29 @@ function Dashboard() {
         value: despesasAgrupadas[key]
     })).filter(item => item.value > 0);
 
+    /* ── Formas de Pagamento (vendas) ── */
+    const formaPgtoLabels = {
+        PIX: 'Pix', CARTAO: 'Cartão', DINHEIRO: 'Dinheiro',
+        TRANSFERENCIA: 'Transferência', BOLETO: 'Boleto'
+    };
+
+    const vendasPorPgto = vendasFiltradas.reduce((acc, v) => {
+        const fp = v.formaPagamento || 'NAO_INFORMADO';
+        acc[fp] = (acc[fp] || 0) + 1;
+        return acc;
+    }, {});
+
+    const dataGraficoPgto = Object.keys(vendasPorPgto)
+        .filter(k => k !== 'NAO_INFORMADO')
+        .map(key => ({
+            name: formaPgtoLabels[key] || key,
+            quantidade: vendasPorPgto[key]
+        }))
+        .sort((a, b) => b.quantidade - a.quantidade);
+
     /* ── Paleta e estilos ── */
     const COLORS = ['#D4A017', '#B8860B', '#E8BF4A', '#C68A1A', '#8B6914', '#A0784C'];
+    const COLORS_PGTO = ['#27AE60', '#2980B9', '#D4A017', '#8E44AD', '#E67E22'];
     const axisColor = '#7A6E5D';
     const gridColor = '#F0EAE0';
 
@@ -290,6 +319,56 @@ function Dashboard() {
                             <div className="chart-empty-state">
                                 <span className="empty-icon">📊</span>
                                 <span>Nenhuma despesa paga em {mesLabel}/{anoFiltro}.</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Formas de Pagamento ── */}
+            <div className="dashboard-charts" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="chart-section">
+                    <h3>Formas de Pagamento mais usadas</h3>
+                    <p className="chart-subtitle">Vendas em {mesLabel} por método de pagamento</p>
+                    <div style={{ height: 300, width: '100%' }}>
+                        {dataGraficoPgto.length > 0 ? (
+                            <ResponsiveContainer>
+                                <BarChart data={dataGraficoPgto} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                                    <XAxis
+                                        dataKey="name"
+                                        stroke={axisColor}
+                                        tick={{ fill: axisColor, fontSize: 13, fontFamily: 'Outfit' }}
+                                        axisLine={{ stroke: gridColor }}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        stroke={axisColor}
+                                        tick={{ fill: axisColor, fontSize: 12, fontFamily: 'Outfit' }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        allowDecimals={false}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => [`${value} venda${value > 1 ? 's' : ''}`, 'Quantidade']}
+                                        contentStyle={{
+                                            background: 'var(--surface-primary)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: 'var(--radius-sm)',
+                                            fontFamily: 'Outfit, sans-serif'
+                                        }}
+                                    />
+                                    <Bar dataKey="quantidade" radius={[6, 6, 0, 0]}>
+                                        {dataGraficoPgto.map((entry, index) => (
+                                            <Cell key={`bar-${index}`} fill={COLORS_PGTO[index % COLORS_PGTO.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="chart-empty-state">
+                                <span className="empty-icon">💳</span>
+                                <span>Nenhuma venda com forma de pagamento em {mesLabel}/{anoFiltro}.</span>
                             </div>
                         )}
                     </div>

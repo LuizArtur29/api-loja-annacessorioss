@@ -9,6 +9,9 @@ import com.loja.api.repository.DespesaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,12 +39,31 @@ public class DespesaService {
     }
 
     @Transactional
-    public DespesaResponseDTO create(DespesaRequestDTO dto) {
-        Despesa despesa = new Despesa();
-        mapDtoToEntity(dto, despesa);
+    public List<DespesaResponseDTO> create(DespesaRequestDTO dto) {
+        int totalParcelas = (dto.parcelas() != null && dto.parcelas() > 1) ? dto.parcelas() : 1;
+        BigDecimal valorParcela = dto.valor().divide(BigDecimal.valueOf(totalParcelas), 2, RoundingMode.HALF_UP);
 
-        despesa = repository.save(despesa);
-        return new DespesaResponseDTO(despesa);
+        List<Despesa> despesas = new ArrayList<>();
+
+        for (int i = 1; i <= totalParcelas; i++) {
+            Despesa despesa = new Despesa();
+            despesa.setDescricao(totalParcelas > 1
+                    ? dto.descricao() + " (" + i + "/" + totalParcelas + ")"
+                    : dto.descricao());
+            despesa.setValor(valorParcela);
+            despesa.setDataPagamento(dto.dataPagamento().plusMonths(i - 1));
+            despesa.setCategoria(dto.categoria());
+            despesa.setStatus(dto.status() != null ? dto.status() : StatusPagamento.PENDENTE);
+            despesa.setFormaPagamento(dto.formaPagamento());
+            despesa.setObservacoes(dto.observacoes());
+            despesa.setParcelas(totalParcelas);
+            despesa.setParcelaAtual(i);
+
+            despesas.add(despesa);
+        }
+
+        List<Despesa> saved = repository.saveAll(despesas);
+        return saved.stream().map(DespesaResponseDTO::new).collect(Collectors.toList());
     }
 
     @Transactional

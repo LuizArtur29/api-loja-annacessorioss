@@ -30,7 +30,7 @@ public class DespesaController {
     }
 
     @PostMapping
-    public ResponseEntity<DespesaResponseDTO> create(@RequestBody DespesaRequestDTO dto) {
+    public ResponseEntity<List<DespesaResponseDTO>> create(@RequestBody DespesaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(dto));
     }
 

@@ -16,7 +16,9 @@ public record DespesaResponseDTO(
         CategoriaDespesa categoria,
         StatusPagamento status,
         FormaPagamento formaPagamento,
-        String observacoes) {
+        String observacoes,
+        Integer parcelas,
+        Integer parcelaAtual) {
 
     public DespesaResponseDTO(Despesa despesa) {
         this(despesa.getId(),
@@ -26,6 +28,8 @@ public record DespesaResponseDTO(
                 despesa.getCategoria(),
                 despesa.getStatus(),
                 despesa.getFormaPagamento(),
-                despesa.getObservacoes());
+                despesa.getObservacoes(),
+                despesa.getParcelas(),
+                despesa.getParcelaAtual());
     }
 }
