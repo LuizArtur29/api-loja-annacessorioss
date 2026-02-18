@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
     LuLayoutDashboard,
     LuTags,
@@ -7,9 +7,19 @@ import {
     LuShoppingCart,
     LuReceipt,
     LuWallet,
+    LuLogOut,
 } from 'react-icons/lu';
+import authService from '../../api/authService';
 
 function Sidebar() {
+    const navigate = useNavigate();
+    const user = authService.getUser();
+
+    const handleLogout = () => {
+        authService.logout();
+        navigate('/login', { replace: true });
+    };
+
     const navItems = [
         {
             section: 'Geral',
@@ -69,9 +79,32 @@ function Sidebar() {
                     </div>
                 ))}
             </nav>
-            <div className="sidebar-footer">
-                <div className="sidebar-footer-dot" />
-                <span>Online</span>
+            <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {user && (
+                    <span style={{
+                        fontSize: '0.78rem', color: 'var(--text-secondary)',
+                        fontFamily: 'Outfit, sans-serif', fontWeight: 500,
+                    }}>
+                        👤 {user.username}
+                    </span>
+                )}
+                <button
+                    onClick={handleLogout}
+                    className="sidebar-link"
+                    style={{
+                        border: 'none', background: 'none', cursor: 'pointer',
+                        width: '100%', textAlign: 'left', color: 'var(--danger-color)',
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '8px 12px', borderRadius: '8px', fontSize: '0.88rem',
+                        fontFamily: 'Outfit, sans-serif', fontWeight: 500,
+                        transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--danger-bg)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                >
+                    <LuLogOut />
+                    Sair
+                </button>
             </div>
         </aside>
     );

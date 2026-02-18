@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout/Layout';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
+import PrivateRoute from './components/PrivateRoute/PrivateRoute';
+import Login from './pages/Login/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Despesas from './pages/Despesas/Despesas';
 import Categorias from './pages/Categorias/Categorias';
@@ -38,17 +41,27 @@ function App() {
                         },
                     }}
                 />
-                <Routes>
-                    <Route element={<Layout />}>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/despesas" element={<Despesas />} />
-                        <Route path="/categorias" element={<Categorias />} />
-                        <Route path="/produtos" element={<Produtos />} />
-                        <Route path="/clientes" element={<Clientes />} />
-                        <Route path="/nova-venda" element={<NovaVenda />} />
-                        <Route path="/vendas" element={<Vendas />} />
-                    </Route>
-                </Routes>
+                <ErrorBoundary>
+                    <Routes>
+                        {/* Rota pública */}
+                        <Route path="/login" element={<Login />} />
+
+                        {/* Rotas protegidas */}
+                        <Route element={
+                            <PrivateRoute>
+                                <Layout />
+                            </PrivateRoute>
+                        }>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/despesas" element={<Despesas />} />
+                            <Route path="/categorias" element={<Categorias />} />
+                            <Route path="/produtos" element={<Produtos />} />
+                            <Route path="/clientes" element={<Clientes />} />
+                            <Route path="/nova-venda" element={<NovaVenda />} />
+                            <Route path="/vendas" element={<Vendas />} />
+                        </Route>
+                    </Routes>
+                </ErrorBoundary>
             </BrowserRouter>
         </QueryClientProvider>
     );

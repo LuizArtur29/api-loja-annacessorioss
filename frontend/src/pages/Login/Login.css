@@ -1,0 +1,313 @@
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decoração de fundo */
+.login-page::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(212, 160, 23, 0.06) 0%, transparent 70%);
+    top: -200px;
+    right: -200px;
+    pointer-events: none;
+}
+
+.login-page::after {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(212, 160, 23, 0.04) 0%, transparent 70%);
+    bottom: -150px;
+    left: -150px;
+    pointer-events: none;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface-primary);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-lg);
+    padding: 2.5rem;
+    position: relative;
+    z-index: 1;
+    animation: loginSlideUp 0.5s ease-out;
+}
+
+@keyframes loginSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Branding */
+.login-brand {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-brand-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    box-shadow: var(--shadow-gold);
+}
+
+.login-brand-icon svg {
+    width: 28px;
+    height: 28px;
+    color: white;
+}
+
+.login-brand h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.login-brand p {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+/* Formulário */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.login-field label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.03em;
+}
+
+.login-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.login-input-wrapper svg {
+    position: absolute;
+    left: 14px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color 0.2s;
+}
+
+.login-input-wrapper input {
+    width: 100%;
+    padding: 0.75rem 0.75rem 0.75rem 2.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--surface-secondary);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.92rem;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.login-input-wrapper input::placeholder {
+    color: var(--text-muted);
+}
+
+.login-input-wrapper input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-alpha);
+    background: var(--surface-primary);
+}
+
+.login-input-wrapper input:focus+svg,
+.login-input-wrapper:has(input:focus) svg {
+    color: var(--accent-color);
+}
+
+.login-toggle-password {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.login-toggle-password:hover {
+    color: var(--text-secondary);
+}
+
+/* Botão de Login */
+.login-btn {
+    width: 100%;
+    padding: 0.85rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--gradient-primary);
+    color: white;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: var(--shadow-gold);
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.login-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(212, 160, 23, 0.25);
+}
+
+.login-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.login-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Spinner */
+.login-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: loginSpin 0.6s linear infinite;
+}
+
+@keyframes loginSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Erro */
+.login-error {
+    background: var(--danger-bg);
+    color: var(--danger-color);
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    text-align: center;
+    animation: loginShake 0.3s ease-out;
+}
+
+@keyframes loginShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* Toggle criar conta */
+.login-toggle {
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.login-toggle p {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+}
+
+.login-toggle button {
+    background: none;
+    border: none;
+    color: var(--accent-dark);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.84rem;
+    font-family: 'Outfit', sans-serif;
+    transition: color 0.2s;
+}
+
+.login-toggle button:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+/* Footer */
+.login-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.login-footer p {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .login-brand h1 {
+        font-size: 1.4rem;
+    }
+}
