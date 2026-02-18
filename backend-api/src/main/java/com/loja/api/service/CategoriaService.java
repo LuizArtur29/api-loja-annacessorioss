@@ -6,6 +6,8 @@ import com.loja.api.exception.ResourceNotFoundException;
 import com.loja.api.model.Categoria;
 import com.loja.api.repository.CategoriaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +20,13 @@ public class CategoriaService {
     private final CategoriaRepository categoriaRepository;
 
     @Transactional(readOnly = true)
-    public List<CategoriaResponseDTO> listarTodas() {
+    public Page<CategoriaResponseDTO> listarTodas(Pageable pageable) {
+        return categoriaRepository.findAll(pageable)
+                .map(this::toResponseDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoriaResponseDTO> listarTodasSemPaginacao() {
         return categoriaRepository.findAll().stream()
                 .map(this::toResponseDTO)
                 .toList();
@@ -50,10 +58,10 @@ public class CategoriaService {
 
     @Transactional
     public void deletar(Long id) {
-        if (!categoriaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Categoria não encontrada com id: " + id);
-        }
-        categoriaRepository.deleteById(id);
+        Categoria categoria = categoriaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada com id: " + id));
+        categoria.setAtivo(false);
+        categoriaRepository.save(categoria);
     }
 
     private CategoriaResponseDTO toResponseDTO(Categoria categoria) {

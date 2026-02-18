@@ -6,6 +6,8 @@ import com.loja.api.exception.ResourceNotFoundException;
 import com.loja.api.model.Despesa;
 import com.loja.api.model.enums.StatusPagamento;
 import com.loja.api.repository.DespesaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +27,13 @@ public class DespesaService {
     }
 
     @Transactional(readOnly = true)
-    public List<DespesaResponseDTO> getAll() {
+    public Page<DespesaResponseDTO> getAll(Pageable pageable) {
+        return repository.findAll(pageable)
+                .map(DespesaResponseDTO::new);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DespesaResponseDTO> getAllSemPaginacao() {
         return repository.findAll().stream()
                 .map(DespesaResponseDTO::new)
                 .collect(Collectors.toList());
@@ -78,10 +86,10 @@ public class DespesaService {
 
     @Transactional
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Despesa não encontrada com o ID: " + id);
-        }
-        repository.deleteById(id);
+        Despesa despesa = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Despesa não encontrada com o ID: " + id));
+        despesa.setAtivo(false);
+        repository.save(despesa);
     }
 
     private void mapDtoToEntity(DespesaRequestDTO dto, Despesa despesa) {

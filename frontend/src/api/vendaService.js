@@ -3,7 +3,7 @@ import api from './api';
 const BASE = '/vendas';
 
 const vendaService = {
-    getAll: () => api.get(BASE),
+    getAll: (page = 0, size = 10) => api.get(BASE, { params: { page, size } }),
     getById: (id) => api.get(`${BASE}/${id}`),
     create: (data) => api.post(BASE, data),
 };

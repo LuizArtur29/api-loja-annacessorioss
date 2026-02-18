@@ -4,43 +4,46 @@ import com.loja.api.model.enums.CategoriaDespesa;
 import com.loja.api.model.enums.FormaPagamento;
 import com.loja.api.model.enums.StatusPagamento;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "despesas")
+@SQLRestriction("ativo = true")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(of = "id")
-public class Despesa {
+public class Despesa extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 150)
+    @Column(nullable = false)
     private String descricao;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valor;
 
-    @Column(name = "data_pagamento", nullable = false)
+    @Column(nullable = false)
     private LocalDate dataPagamento;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false)
     private CategoriaDespesa categoria;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private StatusPagamento status = StatusPagamento.PENDENTE;
+    @Column(nullable = false)
+    private StatusPagamento status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "forma_pagamento", length = 20)
     private FormaPagamento formaPagamento;
 
     @Column(columnDefinition = "TEXT")
@@ -49,6 +52,6 @@ public class Despesa {
     @Column(nullable = false)
     private Integer parcelas = 1;
 
-    @Column(name = "parcela_atual", nullable = false)
+    @Column(nullable = false)
     private Integer parcelaAtual = 1;
 }

@@ -1,31 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { LuEye, LuX } from 'react-icons/lu';
+import { LuX } from 'react-icons/lu';
 import vendaService from '../../api/vendaService';
 import DataTable from '../../components/DataTable/DataTable';
 import './Vendas.css';
 
 function Vendas() {
-    const [vendas, setVendas] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(0);
     const [detailOpen, setDetailOpen] = useState(false);
     const [selectedVenda, setSelectedVenda] = useState(null);
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const res = await vendaService.getAll();
-            setVendas(res.data);
-        } catch {
-            toast.error('Erro ao carregar vendas');
-        } finally {
-            setLoading(false);
+    const { data: vendasPage, isLoading: loading } = useQuery({
+        queryKey: ['vendas', page],
+        queryFn: async () => {
+            const res = await vendaService.getAll(page, 10);
+            return res.data;
         }
-    };
+    });
+
+    const vendas = vendasPage?.content || [];
+    const pagination = vendasPage ? {
+        number: vendasPage.number,
+        totalPages: vendasPage.totalPages,
+        totalElements: vendasPage.totalElements,
+        first: vendasPage.first,
+        last: vendasPage.last,
+    } : null;
 
     const openDetail = async (venda) => {
         try {
@@ -87,6 +88,8 @@ function Vendas() {
                 loading={loading}
                 searchPlaceholder="Buscar por cliente..."
                 onEdit={(row) => openDetail(row)}
+                pagination={pagination}
+                onPageChange={setPage}
             />
 
             {/* Detail modal */}

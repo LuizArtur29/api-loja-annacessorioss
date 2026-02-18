@@ -7,17 +7,28 @@ import despesaService from '../../api/despesaService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import customSelectStyles from '../../utils/selectStyles';
 
 function Despesas() {
     const queryClient = useQueryClient();
+    const [page, setPage] = useState(0);
 
-    const { data: despesas = [], isLoading: loading } = useQuery({
-        queryKey: ['despesas'],
+    const { data: despesasPage, isLoading: loading } = useQuery({
+        queryKey: ['despesas', page],
         queryFn: async () => {
-            const res = await despesaService.getAll();
+            const res = await despesaService.getAll(page, 10);
             return res.data;
         }
     });
+
+    const despesas = despesasPage?.content || [];
+    const pagination = despesasPage ? {
+        number: despesasPage.number,
+        totalPages: despesasPage.totalPages,
+        totalElements: despesasPage.totalElements,
+        first: despesasPage.first,
+        last: despesasPage.last,
+    } : null;
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -64,34 +75,7 @@ function Despesas() {
         { value: 'BOLETO', label: 'Boleto' }
     ];
 
-    const customSelectStyles = {
-        control: (provided, state) => ({
-            ...provided,
-            backgroundColor: 'var(--surface-secondary)',
-            borderColor: state.isFocused ? 'var(--accent-color)' : 'var(--border-color)',
-            borderRadius: '10px',
-            minHeight: '42px',
-            boxShadow: 'none',
-            '&:hover': { borderColor: state.isFocused ? 'var(--accent-color)' : 'var(--border-color)' },
-            cursor: 'pointer'
-        }),
-        menu: (provided) => ({
-            ...provided,
-            backgroundColor: 'var(--surface-primary)',
-            border: `1px solid var(--border-color)`,
-            borderRadius: '8px',
-            zIndex: 9999
-        }),
-        option: (provided, state) => ({
-            ...provided,
-            backgroundColor: state.isFocused ? 'var(--surface-hover)' : 'transparent',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            '&:active': { backgroundColor: 'var(--accent-alpha)' }
-        }),
-        singleValue: (provided) => ({ ...provided, color: 'var(--text-primary)' }),
-        placeholder: (provided) => ({ ...provided, color: 'var(--text-muted)' })
-    };
+
 
     /* ── Filtrar despesas pelo mês/ano selecionado ── */
     const despesasFiltradas = useMemo(() => {
@@ -343,6 +327,8 @@ function Despesas() {
                 addLabel="Nova Despesa"
                 onEdit={openEdit}
                 onDelete={handleDelete}
+                pagination={pagination}
+                onPageChange={setPage}
             />
 
             <Modal

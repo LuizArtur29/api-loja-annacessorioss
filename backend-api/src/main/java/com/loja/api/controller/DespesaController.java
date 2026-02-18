@@ -3,6 +3,10 @@ package com.loja.api.controller;
 import com.loja.api.dto.DespesaRequestDTO;
 import com.loja.api.dto.DespesaResponseDTO;
 import com.loja.api.service.DespesaService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +24,14 @@ public class DespesaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DespesaResponseDTO>> getAll() {
-        return ResponseEntity.ok(service.getAll());
+    public ResponseEntity<Page<DespesaResponseDTO>> getAll(
+            @PageableDefault(size = 10, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(service.getAll(pageable));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<DespesaResponseDTO>> getAllSemPaginacao() {
+        return ResponseEntity.ok(service.getAllSemPaginacao());
     }
 
     @GetMapping("/{id}")
@@ -30,13 +40,13 @@ public class DespesaController {
     }
 
     @PostMapping
-    public ResponseEntity<List<DespesaResponseDTO>> create(@RequestBody DespesaRequestDTO dto) {
+    public ResponseEntity<List<DespesaResponseDTO>> create(@Valid @RequestBody DespesaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(dto));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<DespesaResponseDTO> update(@PathVariable Long id,
-            @RequestBody DespesaRequestDTO dto) {
+            @Valid @RequestBody DespesaRequestDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 

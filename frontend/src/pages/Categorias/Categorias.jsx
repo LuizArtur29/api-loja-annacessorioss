@@ -1,32 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import categoriaService from '../../api/categoriaService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
 function Categorias() {
-    const [categorias, setCategorias] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const [page, setPage] = useState(0);
+
+    const { data: categoriasPage, isLoading: loading } = useQuery({
+        queryKey: ['categorias', page],
+        queryFn: async () => {
+            const res = await categoriaService.getAll(page, 10);
+            return res.data;
+        }
+    });
+
+    const categorias = categoriasPage?.content || [];
+    const pagination = categoriasPage ? {
+        number: categoriasPage.number,
+        totalPages: categoriasPage.totalPages,
+        totalElements: categoriasPage.totalElements,
+        first: categoriasPage.first,
+        last: categoriasPage.last,
+    } : null;
+
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
     const [nome, setNome] = useState('');
     const [saving, setSaving] = useState(false);
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const res = await categoriaService.getAll();
-            setCategorias(res.data);
-        } catch {
-            toast.error('Erro ao carregar categorias');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, categoria: null });
 
     const openNew = () => {
         setEditing(null);
@@ -55,7 +60,7 @@ function Categorias() {
                 toast.success('Categoria criada');
             }
             setModalOpen(false);
-            loadData();
+            queryClient.invalidateQueries({ queryKey: ['categorias'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
         } finally {
@@ -63,14 +68,19 @@ function Categorias() {
         }
     };
 
-    const handleDelete = async (cat) => {
-        if (!window.confirm(`Deseja excluir a categoria "${cat.nome}"?`)) return;
+    const handleDeleteClick = (cat) => {
+        setConfirmDelete({ isOpen: true, categoria: cat });
+    };
+
+    const executeDelete = async () => {
         try {
-            await categoriaService.delete(cat.id);
+            await categoriaService.delete(confirmDelete.categoria.id);
             toast.success('Categoria excluída');
-            loadData();
+            queryClient.invalidateQueries({ queryKey: ['categorias'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
+        } finally {
+            setConfirmDelete({ isOpen: false, categoria: null });
         }
     };
 
@@ -94,7 +104,9 @@ function Categorias() {
                 onAdd={openNew}
                 addLabel="Nova Categoria"
                 onEdit={openEdit}
-                onDelete={handleDelete}
+                onDelete={handleDeleteClick}
+                pagination={pagination}
+                onPageChange={setPage}
             />
 
             <Modal
@@ -115,6 +127,14 @@ function Categorias() {
                     />
                 </div>
             </Modal>
+
+            <ConfirmModal
+                isOpen={confirmDelete.isOpen}
+                title="Excluir Categoria"
+                message={`Tem a certeza que deseja excluir a categoria "${confirmDelete.categoria?.nome}"?`}
+                onConfirm={executeDelete}
+                onClose={() => setConfirmDelete({ isOpen: false, categoria: null })}
+            />
         </div>
     );
 }

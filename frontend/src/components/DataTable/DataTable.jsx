@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LuSearch, LuPlus, LuPen, LuTrash2, LuInbox } from 'react-icons/lu';
+import { LuSearch, LuPlus, LuPen, LuTrash2, LuInbox, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import './DataTable.css';
 
 function DataTable({
@@ -11,6 +11,9 @@ function DataTable({
     addLabel = 'Novo',
     onEdit,
     onDelete,
+    // Pagination props
+    pagination,
+    onPageChange,
 }) {
     const [search, setSearch] = useState('');
 
@@ -101,6 +104,34 @@ function DataTable({
                         ))}
                     </tbody>
                 </table>
+            )}
+
+            {pagination && !loading && (
+                <div className="data-table-pagination">
+                    <span className="pagination-info">
+                        Página {pagination.number + 1} de {pagination.totalPages || 1}
+                        {' · '}
+                        {pagination.totalElements} registro{pagination.totalElements !== 1 ? 's' : ''}
+                    </span>
+                    <div className="pagination-controls">
+                        <button
+                            className="btn btn-ghost"
+                            disabled={pagination.first}
+                            onClick={() => onPageChange(pagination.number - 1)}
+                            title="Página anterior"
+                        >
+                            <LuChevronLeft />
+                        </button>
+                        <button
+                            className="btn btn-ghost"
+                            disabled={pagination.last}
+                            onClick={() => onPageChange(pagination.number + 1)}
+                            title="Próxima página"
+                        >
+                            <LuChevronRight />
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );

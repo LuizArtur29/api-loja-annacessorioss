@@ -8,6 +8,8 @@ import com.loja.api.model.Produto;
 import com.loja.api.repository.CategoriaRepository;
 import com.loja.api.repository.ProdutoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +23,13 @@ public class ProdutoService {
     private final CategoriaRepository categoriaRepository;
 
     @Transactional(readOnly = true)
-    public List<ProdutoResponseDTO> listarTodos() {
+    public Page<ProdutoResponseDTO> listarTodos(Pageable pageable) {
+        return produtoRepository.findAll(pageable)
+                .map(this::toResponseDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProdutoResponseDTO> listarTodosSemPaginacao() {
         return produtoRepository.findAll().stream()
                 .map(this::toResponseDTO)
                 .toList();
@@ -72,10 +80,10 @@ public class ProdutoService {
 
     @Transactional
     public void deletar(Long id) {
-        if (!produtoRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Produto não encontrado com id: " + id);
-        }
-        produtoRepository.deleteById(id);
+        Produto produto = produtoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
+        produto.setAtivo(false);
+        produtoRepository.save(produto);
     }
 
     private ProdutoResponseDTO toResponseDTO(Produto produto) {

@@ -7,6 +7,7 @@ import Select from 'react-select';
 import produtoService from '../../api/produtoService';
 import clienteService from '../../api/clienteService';
 import vendaService from '../../api/vendaService';
+import customSelectStyles from '../../utils/selectStyles';
 import './NovaVenda.css';
 
 function NovaVenda() {
@@ -14,17 +15,17 @@ function NovaVenda() {
     const queryClient = useQueryClient();
 
     const { data: produtos = [], isLoading: loadingProdutos } = useQuery({
-        queryKey: ['produtos'],
+        queryKey: ['produtos-all'],
         queryFn: async () => {
-            const res = await produtoService.getAll();
+            const res = await produtoService.getAllNoPagination();
             return res.data;
         }
     });
 
     const { data: clientes = [], isLoading: loadingClientes } = useQuery({
-        queryKey: ['clientes'],
+        queryKey: ['clientes-all'],
         queryFn: async () => {
-            const res = await clienteService.getAll();
+            const res = await clienteService.getAllNoPagination();
             return res.data;
         }
     });
@@ -58,36 +59,7 @@ function NovaVenda() {
         label: c.nome
     }));
 
-    // Estilos do React Select injetando as variáveis CSS do App.css
-    const customSelectStyles = {
-        control: (provided, state) => ({
-            ...provided,
-            backgroundColor: 'var(--surface-secondary)',
-            borderColor: state.isFocused ? 'var(--accent-color)' : 'var(--border-color)',
-            borderRadius: '10px',
-            minHeight: '42px',
-            boxShadow: 'none',
-            '&:hover': { borderColor: state.isFocused ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.15)' },
-            cursor: 'text'
-        }),
-        menu: (provided) => ({
-            ...provided,
-            backgroundColor: 'var(--surface-primary)',
-            border: `1px solid var(--border-color)`,
-            borderRadius: '8px',
-            zIndex: 100
-        }),
-        option: (provided, state) => ({
-            ...provided,
-            backgroundColor: state.isFocused ? 'var(--surface-hover)' : 'transparent',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            '&:active': { backgroundColor: 'var(--accent-alpha)' }
-        }),
-        singleValue: (provided) => ({ ...provided, color: 'var(--text-primary)' }),
-        input: (provided) => ({ ...provided, color: 'var(--text-primary)' }),
-        placeholder: (provided) => ({ ...provided, color: 'var(--text-muted)' })
-    };
+
 
     const addItem = () => {
         if (!selectedProdutoOption) {

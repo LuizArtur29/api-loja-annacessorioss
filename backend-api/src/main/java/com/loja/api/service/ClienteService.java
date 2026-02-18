@@ -6,6 +6,8 @@ import com.loja.api.exception.ResourceNotFoundException;
 import com.loja.api.model.Cliente;
 import com.loja.api.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +20,13 @@ public class ClienteService {
     private final ClienteRepository clienteRepository;
 
     @Transactional(readOnly = true)
-    public List<ClienteResponseDTO> listarTodos() {
+    public Page<ClienteResponseDTO> listarTodos(Pageable pageable) {
+        return clienteRepository.findAll(pageable)
+                .map(this::toResponseDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClienteResponseDTO> listarTodosSemPaginacao() {
         return clienteRepository.findAll().stream()
                 .map(this::toResponseDTO)
                 .toList();
@@ -52,10 +60,10 @@ public class ClienteService {
 
     @Transactional
     public void deletar(Long id) {
-        if (!clienteRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Cliente não encontrado com id: " + id);
-        }
-        clienteRepository.deleteById(id);
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com id: " + id));
+        cliente.setAtivo(false);
+        clienteRepository.save(cliente);
     }
 
     private ClienteResponseDTO toResponseDTO(Cliente cliente) {

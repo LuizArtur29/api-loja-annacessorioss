@@ -8,26 +8,38 @@ import categoriaService from '../../api/categoriaService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import customSelectStyles from '../../utils/selectStyles';
 
 function Produtos() {
     const queryClient = useQueryClient();
+    const [page, setPage] = useState(0);
 
-    // 1. Buscas com Cache (React Query)
-    const { data: produtos = [], isLoading: loadingProdutos } = useQuery({
-        queryKey: ['produtos'],
+    // Busca paginada para a tabela
+    const { data: produtosPage, isLoading: loadingProdutos } = useQuery({
+        queryKey: ['produtos', page],
         queryFn: async () => {
-            const res = await produtoService.getAll();
+            const res = await produtoService.getAll(page, 10);
             return res.data;
         }
     });
 
+    // Busca sem paginação para selects / dropdowns
     const { data: categorias = [], isLoading: loadingCategorias } = useQuery({
-        queryKey: ['categorias'],
+        queryKey: ['categorias-all'],
         queryFn: async () => {
-            const res = await categoriaService.getAll();
+            const res = await categoriaService.getAllNoPagination();
             return res.data;
         }
     });
+
+    const produtos = produtosPage?.content || [];
+    const pagination = produtosPage ? {
+        number: produtosPage.number,
+        totalPages: produtosPage.totalPages,
+        totalElements: produtosPage.totalElements,
+        first: produtosPage.first,
+        last: produtosPage.last,
+    } : null;
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -42,42 +54,10 @@ function Produtos() {
         categoriaId: '',
     });
 
-    // 2. Preparar as opções para o React Select
     const categoriaOptions = categorias.map((cat) => ({
         value: cat.id,
         label: cat.nome
     }));
-
-    // Estilos personalizados do Select para bater com o modal escuro
-    const customSelectStyles = {
-        control: (provided, state) => ({
-            ...provided,
-            backgroundColor: 'var(--surface-secondary)',
-            borderColor: state.isFocused ? 'var(--accent-color)' : 'var(--border-color)',
-            borderRadius: '10px',
-            minHeight: '42px',
-            boxShadow: 'none',
-            '&:hover': { borderColor: state.isFocused ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.15)' },
-            cursor: 'text'
-        }),
-        menu: (provided) => ({
-            ...provided,
-            backgroundColor: 'var(--surface-primary)',
-            border: `1px solid var(--border-color)`,
-            borderRadius: '8px',
-            zIndex: 9999 // Para ficar por cima do modal
-        }),
-        option: (provided, state) => ({
-            ...provided,
-            backgroundColor: state.isFocused ? 'var(--surface-hover)' : 'transparent',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            '&:active': { backgroundColor: 'var(--accent-alpha)' }
-        }),
-        singleValue: (provided) => ({ ...provided, color: 'var(--text-primary)' }),
-        input: (provided) => ({ ...provided, color: 'var(--text-primary)' }),
-        placeholder: (provided) => ({ ...provided, color: 'var(--text-muted)' })
-    };
 
     const resetForm = () =>
         setForm({ nome: '', descricao: '', precoVenda: '', quantidadeEstoque: '', categoriaId: '' });
@@ -125,7 +105,7 @@ function Produtos() {
                 toast.success('Produto criado');
             }
             setModalOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['produtos'] }); // Recarrega os dados em pano de fundo
+            queryClient.invalidateQueries({ queryKey: ['produtos'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
         } finally {
@@ -133,7 +113,6 @@ function Produtos() {
         }
     };
 
-    // 3. Funções do Modal de Exclusão Moderno
     const handleDeleteClick = (prod) => {
         setConfirmDelete({ isOpen: true, produto: prod });
     };
@@ -198,6 +177,8 @@ function Produtos() {
                 addLabel="Novo Produto"
                 onEdit={openEdit}
                 onDelete={handleDeleteClick}
+                pagination={pagination}
+                onPageChange={setPage}
             />
 
             <Modal
@@ -228,7 +209,6 @@ function Produtos() {
                     />
                 </div>
 
-                {/* 4. Select Pesquisável para Categoria */}
                 <div className="form-group">
                     <label>Categoria *</label>
                     <Select
@@ -243,7 +223,6 @@ function Produtos() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    {/* Máscara de dinheiro no Preço */}
                     <div className="form-group">
                         <label>Preço de Venda *</label>
                         <NumericFormat
@@ -271,7 +250,6 @@ function Produtos() {
                 </div>
             </Modal>
 
-            {/* Modal de Confirmação Moderno */}
             <ConfirmModal
                 isOpen={confirmDelete.isOpen}
                 title="Excluir Produto"

@@ -9,14 +9,24 @@ import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
 function Clientes() {
     const queryClient = useQueryClient();
+    const [page, setPage] = useState(0);
 
-    const { data: clientes = [], isLoading: loading } = useQuery({
-        queryKey: ['clientes'],
+    const { data: clientesPage, isLoading: loading } = useQuery({
+        queryKey: ['clientes', page],
         queryFn: async () => {
-            const res = await clienteService.getAll();
+            const res = await clienteService.getAll(page, 10);
             return res.data;
         }
     });
+
+    const clientes = clientesPage?.content || [];
+    const pagination = clientesPage ? {
+        number: clientesPage.number,
+        totalPages: clientesPage.totalPages,
+        totalElements: clientesPage.totalElements,
+        first: clientesPage.first,
+        last: clientesPage.last,
+    } : null;
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -107,6 +117,8 @@ function Clientes() {
                 addLabel="Novo Cliente"
                 onEdit={openEdit}
                 onDelete={handleDelete}
+                pagination={pagination}
+                onPageChange={setPage}
             />
 
             <Modal
