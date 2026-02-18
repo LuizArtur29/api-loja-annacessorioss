@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +25,7 @@ public class Venda extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private LocalDate dataVenda;
+    private LocalDateTime dataVenda;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valorTotal;
@@ -43,7 +43,7 @@ public class Venda extends BaseEntity {
     @PrePersist
     public void prePersist() {
         if (this.dataVenda == null) {
-            this.dataVenda = LocalDate.now();
+            this.dataVenda = LocalDateTime.now();
         }
     }
 }

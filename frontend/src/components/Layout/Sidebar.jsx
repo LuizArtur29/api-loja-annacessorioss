@@ -55,7 +55,7 @@ function Sidebar() {
             <div className="sidebar-header">
                 <div className="sidebar-logo">AC</div>
                 <div className="sidebar-brand">
-                    <h1>AC Acessórios</h1>
+                    <h1>Ana Acessórios</h1>
                     <span>Sistema de Gestão</span>
                 </div>
             </div>

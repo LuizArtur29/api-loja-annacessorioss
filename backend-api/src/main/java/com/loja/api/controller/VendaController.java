@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/vendas")
 public class VendaController {
@@ -25,6 +27,11 @@ public class VendaController {
     public ResponseEntity<Page<VendaResponseDTO>> listarTodas(
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(service.listarTodas(pageable));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<VendaResponseDTO>> listarTodasSemPaginacao() {
+        return ResponseEntity.ok(service.listarTodasSemPaginacao());
     }
 
     @PostMapping

@@ -50,7 +50,7 @@ function Login() {
                     <div className="login-brand-icon">
                         <LuGem />
                     </div>
-                    <h1>Anna Cessórios</h1>
+                    <h1>Ana Acessórios</h1>
                     <p>{isRegister ? 'Crie sua conta para começar' : 'Acesse o painel de gestão'}</p>
                 </div>
 
@@ -116,7 +116,7 @@ function Login() {
                 </form>
 
                 <div className="login-footer">
-                    <p>© 2026 Anna Cessórios — Painel Administrativo</p>
+                    <p>© 2026 Ana Acessórios — Painel Administrativo</p>
                 </div>
             </div>
         </div>

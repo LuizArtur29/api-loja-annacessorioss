@@ -61,7 +61,7 @@ function Dashboard() {
     const { data: vendas = [], isLoading: loadingVendas } = useQuery({
         queryKey: ['vendas'],
         queryFn: async () => {
-            const res = await vendaService.getAll();
+            const res = await vendaService.getAllNoPagination();
             return res.data;
         }
     });
@@ -69,7 +69,7 @@ function Dashboard() {
     const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
         queryKey: ['despesas'],
         queryFn: async () => {
-            const res = await despesaService.getAll();
+            const res = await despesaService.getAllNoPagination();
             return res.data;
         }
     });

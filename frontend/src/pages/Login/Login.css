@@ -124,19 +124,9 @@
     align-items: center;
 }
 
-.login-input-wrapper svg {
-    position: absolute;
-    left: 14px;
-    width: 18px;
-    height: 18px;
-    color: var(--text-muted);
-    pointer-events: none;
-    transition: color 0.2s;
-}
-
 .login-input-wrapper input {
     width: 100%;
-    padding: 0.75rem 0.75rem 0.75rem 2.75rem;
+    padding: 0.75rem 2.75rem 0.75rem 2.75rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     background: var(--surface-secondary);
@@ -145,6 +135,8 @@
     font-size: 0.92rem;
     transition: all 0.2s;
     outline: none;
+    box-sizing: border-box;
+    /* Garante que padding não aumente a largura */
 }
 
 .login-input-wrapper input::placeholder {
@@ -157,14 +149,29 @@
     background: var(--surface-primary);
 }
 
+/* Aplica apenas ao ícone direto do wrapper (o da esquerda), não ao do botão */
+.login-input-wrapper>svg {
+    position: absolute;
+    left: 14px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color 0.2s;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
 .login-input-wrapper input:focus+svg,
-.login-input-wrapper:has(input:focus) svg {
+.login-input-wrapper:has(input:focus)>svg {
     color: var(--accent-color);
 }
 
 .login-toggle-password {
     position: absolute;
-    right: 10px;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
@@ -173,6 +180,7 @@
     display: flex;
     align-items: center;
     transition: color 0.2s;
+    z-index: 2;
 }
 
 .login-toggle-password:hover {
