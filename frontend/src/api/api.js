@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 const api = axios.create({
+    // 1. Garantimos que a URL base termine com /api para bater com seu @RequestMapping
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Interceptor de request — injeta token JWT
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('anna_token');
     if (token) {
@@ -16,13 +16,15 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Interceptor de response — redireciona ao login em 401/403
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        // 2. Ajuste de segurança: Não redirecionar se o erro for na rota de registro ou login
+        const isAuthRoute = window.location.pathname.includes('/login') ||
+            window.location.pathname.includes('/register');
+
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            // Não redireciona se já estiver na rota de login
-            if (!window.location.pathname.includes('/login')) {
+            if (!isAuthRoute) {
                 localStorage.removeItem('anna_token');
                 localStorage.removeItem('anna_user');
                 window.location.href = '/login';
