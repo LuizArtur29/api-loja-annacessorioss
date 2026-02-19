@@ -50,6 +50,7 @@ public class ProdutoService {
 
         Produto produto = new Produto();
         produto.setNome(dto.nome());
+        produto.setCodigo(dto.codigo());
         produto.setDescricao(dto.descricao());
         produto.setPrecoVenda(dto.precoVenda());
         produto.setQuantidadeEstoque(dto.quantidadeEstoque());
@@ -69,6 +70,7 @@ public class ProdutoService {
                         () -> new ResourceNotFoundException("Categoria não encontrada com id: " + dto.categoriaId()));
 
         produto.setNome(dto.nome());
+        produto.setCodigo(dto.codigo());
         produto.setDescricao(dto.descricao());
         produto.setPrecoVenda(dto.precoVenda());
         produto.setQuantidadeEstoque(dto.quantidadeEstoque());
@@ -90,6 +92,7 @@ public class ProdutoService {
         return new ProdutoResponseDTO(
                 produto.getId(),
                 produto.getNome(),
+                produto.getCodigo(),
                 produto.getDescricao(),
                 produto.getPrecoVenda(),
                 produto.getQuantidadeEstoque(),

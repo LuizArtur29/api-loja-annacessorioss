@@ -48,6 +48,7 @@ function Produtos() {
 
     const [form, setForm] = useState({
         nome: '',
+        codigo: '',
         descricao: '',
         precoVenda: '',
         quantidadeEstoque: '',
@@ -60,7 +61,7 @@ function Produtos() {
     }));
 
     const resetForm = () =>
-        setForm({ nome: '', descricao: '', precoVenda: '', quantidadeEstoque: '', categoriaId: '' });
+        setForm({ nome: '', codigo: '', descricao: '', precoVenda: '', quantidadeEstoque: '', categoriaId: '' });
 
     const openNew = () => {
         setEditing(null);
@@ -72,6 +73,7 @@ function Produtos() {
         setEditing(prod);
         setForm({
             nome: prod.nome,
+            codigo: prod.codigo || '',
             descricao: prod.descricao || '',
             precoVenda: prod.precoVenda,
             quantidadeEstoque: prod.quantidadeEstoque,
@@ -134,6 +136,7 @@ function Produtos() {
 
     const columns = [
         { key: 'id', header: 'ID' },
+        { key: 'codigo', header: 'Código' },
         { key: 'nome', header: 'Nome' },
         {
             header: 'Categoria',
@@ -197,6 +200,16 @@ function Produtos() {
                         onChange={handleChange}
                         placeholder="Nome do produto"
                         autoFocus
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Código</label>
+                    <input
+                        type="text"
+                        name="codigo"
+                        value={form.codigo}
+                        onChange={handleChange}
+                        placeholder="Código / SKU"
                     />
                 </div>
                 <div className="form-group">

@@ -25,6 +25,9 @@ public class Produto extends BaseEntity {
     @Column(nullable = false, length = 150)
     private String nome;
 
+    @Column(length = 50)
+    private String codigo;
+
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
