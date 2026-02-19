@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variáveis de Ambiente (Segurança)
+.env
+.env.production
+.env.development
+# Ignora credenciais que você pode ter criado para testes locais
+anna_token_debug.txt

@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Backend Extra ###
+backend-api/.env
+backend-api/src/main/resources/application-local.properties
+.DS_Store

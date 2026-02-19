@@ -29,9 +29,7 @@ public class Usuario implements UserDetails {
     private String senha;
 
     @Column(nullable = false, length = 30)
-    private String role; // ROLE_ADMIN, ROLE_USER
-
-    /* ── UserDetails ── */
+    private String role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
