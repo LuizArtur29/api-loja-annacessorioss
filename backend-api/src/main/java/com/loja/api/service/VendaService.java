@@ -41,6 +41,13 @@ public class VendaService {
                                 .toList();
         }
 
+        @Transactional(readOnly = true)
+        public VendaResponseDTO buscarPorId(Long id) {
+                Venda venda = vendaRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada com id: " + id));
+                return toResponseDTO(venda);
+        }
+
         @Transactional
         public VendaResponseDTO registrar(VendaRequestDTO dto) {
                 Venda venda = new Venda();

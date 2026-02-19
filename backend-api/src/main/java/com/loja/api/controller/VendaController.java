@@ -34,6 +34,11 @@ public class VendaController {
         return ResponseEntity.ok(service.listarTodasSemPaginacao());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<VendaResponseDTO> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(service.buscarPorId(id));
+    }
+
     @PostMapping
     public ResponseEntity<VendaResponseDTO> registrar(@Valid @RequestBody VendaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.registrar(dto));
