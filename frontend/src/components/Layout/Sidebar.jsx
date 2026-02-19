@@ -11,9 +11,15 @@ import {
 } from 'react-icons/lu';
 import authService from '../../api/authService';
 
-function Sidebar() {
+function Sidebar({ isOpen, onClose }) {
     const navigate = useNavigate();
     const user = authService.getUser();
+
+    const handleNavigation = (path) => {
+        if (onClose) onClose();
+        // Se for o mesmo path, não faz nada mas fecha o menu.
+        // O NavLink já cuida da navegação, mas aqui garantimos o fechamento
+    };
 
     const handleLogout = () => {
         authService.logout();
@@ -51,7 +57,7 @@ function Sidebar() {
     ];
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
             <div className="sidebar-header">
                 <div className="sidebar-logo">AC</div>
                 <div className="sidebar-brand">
@@ -67,6 +73,7 @@ function Sidebar() {
                             <NavLink
                                 key={item.to}
                                 to={item.to}
+                                onClick={onClose}
                                 end={item.to === '/'}
                                 className={({ isActive }) =>
                                     `sidebar-link${isActive ? ' active' : ''}`
