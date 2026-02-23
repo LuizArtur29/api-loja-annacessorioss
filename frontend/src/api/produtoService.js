@@ -9,6 +9,7 @@ const produtoService = {
     create: (data) => api.post(BASE, data),
     update: (id, data) => api.put(`${BASE}/${id}`, data),
     delete: (id) => api.delete(`${BASE}/${id}`),
+    getValorTotal: () => api.get(`${BASE}/valor-total`),
 };
 
 export default produtoService;

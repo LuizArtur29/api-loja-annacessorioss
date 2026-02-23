@@ -43,4 +43,10 @@ public class VendaController {
     public ResponseEntity<VendaResponseDTO> registrar(@Valid @RequestBody VendaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.registrar(dto));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(@PathVariable Long id) {
+        service.deletar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

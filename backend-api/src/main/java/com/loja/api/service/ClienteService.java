@@ -62,8 +62,7 @@ public class ClienteService {
     public void deletar(Long id) {
         Cliente cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com id: " + id));
-        cliente.setAtivo(false);
-        clienteRepository.save(cliente);
+        clienteRepository.delete(cliente);
     }
 
     private ClienteResponseDTO toResponseDTO(Cliente cliente) {

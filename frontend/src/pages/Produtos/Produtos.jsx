@@ -32,6 +32,15 @@ function Produtos() {
         }
     });
 
+    // Valor total do estoque
+    const { data: valorTotalEstoque } = useQuery({
+        queryKey: ['produtos-valor-total'],
+        queryFn: async () => {
+            const res = await produtoService.getValorTotal();
+            return res.data;
+        }
+    });
+
     const produtos = produtosPage?.content || [];
     const pagination = produtosPage ? {
         number: produtosPage.number,
@@ -108,6 +117,7 @@ function Produtos() {
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
         } finally {
@@ -124,6 +134,7 @@ function Produtos() {
             await produtoService.delete(confirmDelete.produto.id);
             toast.success('Produto excluído');
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
         } finally {
@@ -170,6 +181,43 @@ function Produtos() {
                 <h2>Produtos</h2>
                 <p>Faça a gestão do seu stock de bijuterias</p>
             </div>
+
+            {/* Card do Valor Total do Estoque */}
+            {valorTotalEstoque != null && (
+                <div style={{
+                    background: 'var(--surface-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '1.25rem 1.5rem',
+                    marginBottom: '1.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                }}>
+                    <span style={{ fontSize: '1.6rem' }}>💎</span>
+                    <div>
+                        <div style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            color: 'var(--text-muted)',
+                            fontFamily: 'Outfit, sans-serif',
+                        }}>
+                            Valor Total em Estoque
+                        </div>
+                        <div style={{
+                            fontSize: '1.5rem',
+                            fontWeight: 700,
+                            color: 'var(--accent-color)',
+                            fontFamily: 'Playfair Display, serif',
+                            marginTop: '0.15rem',
+                        }}>
+                            {formatCurrency(valorTotalEstoque)}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <DataTable
                 columns={columns}

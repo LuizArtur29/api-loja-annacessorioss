@@ -37,6 +37,9 @@ public class Venda extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private FormaPagamento formaPagamento;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal desconto = BigDecimal.ZERO;
+
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemVenda> itens = new ArrayList<>();
 

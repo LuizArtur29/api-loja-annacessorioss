@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { LuPlus, LuTrash2, LuShoppingCart } from 'react-icons/lu';
+import { NumericFormat } from 'react-number-format';
 import Select from 'react-select';
 import produtoService from '../../api/produtoService';
 import clienteService from '../../api/clienteService';
@@ -36,6 +37,7 @@ function NovaVenda() {
     const [selectedProdutoOption, setSelectedProdutoOption] = useState(null);
     const [quantidade, setQuantidade] = useState(1);
     const [itens, setItens] = useState([]);
+    const [desconto, setDesconto] = useState('');
 
     const formaPagamentoOptions = [
         { value: 'PIX', label: '📱 Pix' },
@@ -106,11 +108,17 @@ function NovaVenda() {
         setItens(itens.filter((i) => i.produtoId !== produtoId));
     };
 
-    const total = itens.reduce((sum, i) => sum + i.precoUnitario * i.quantidade, 0);
+    const subtotal = itens.reduce((sum, i) => sum + i.precoUnitario * i.quantidade, 0);
+    const descontoValue = parseFloat(desconto) || 0;
+    const total = Math.max(subtotal - descontoValue, 0);
 
     const handleFinalizar = async () => {
         if (itens.length === 0) {
             toast.error('Adicione pelo menos um item');
+            return;
+        }
+        if (descontoValue > subtotal) {
+            toast.error('O desconto não pode ser maior que o subtotal');
             return;
         }
         setSaving(true);
@@ -118,6 +126,7 @@ function NovaVenda() {
             const payload = {
                 clienteId: clienteId ? parseInt(clienteId) : null,
                 formaPagamento: formaPagamento || null,
+                desconto: descontoValue > 0 ? descontoValue : null,
                 itens: itens.map((i) => ({
                     produtoId: i.produtoId,
                     quantidade: i.quantidade,
@@ -127,6 +136,7 @@ function NovaVenda() {
             toast.success('Venda registada com sucesso!');
 
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
             queryClient.invalidateQueries({ queryKey: ['vendas'] });
 
             navigate('/vendas');
@@ -235,6 +245,21 @@ function NovaVenda() {
                         />
                     </div>
 
+                    <div className="form-group">
+                        <label>Desconto (R$)</label>
+                        <NumericFormat
+                            value={desconto}
+                            onValueChange={(values) => setDesconto(values.value)}
+                            thousandSeparator="."
+                            decimalSeparator=","
+                            prefix="R$ "
+                            decimalScale={2}
+                            fixedDecimalScale
+                            placeholder="R$ 0,00"
+                            allowNegative={false}
+                        />
+                    </div>
+
                     <div style={{ marginTop: 'auto' }}>
                         <div className="resumo-line">
                             <span>Total de Itens</span>
@@ -242,6 +267,22 @@ function NovaVenda() {
                                 {itens.reduce((s, i) => s + i.quantidade, 0)}
                             </span>
                         </div>
+
+                        <div className="resumo-line">
+                            <span>Subtotal</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
+                                {formatCurrency(subtotal)}
+                            </span>
+                        </div>
+
+                        {descontoValue > 0 && (
+                            <div className="resumo-line" style={{ color: 'var(--danger-color)' }}>
+                                <span>Desconto</span>
+                                <span style={{ fontWeight: '600' }}>
+                                    − {formatCurrency(descontoValue)}
+                                </span>
+                            </div>
+                        )}
 
                         <div className="resumo-total">
                             <span>Total a Pagar</span>

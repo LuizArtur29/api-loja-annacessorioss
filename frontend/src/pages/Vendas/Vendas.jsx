@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { LuX } from 'react-icons/lu';
 import vendaService from '../../api/vendaService';
 import DataTable from '../../components/DataTable/DataTable';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import './Vendas.css';
 
 function Vendas() {
+    const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
     const [detailOpen, setDetailOpen] = useState(false);
     const [selectedVenda, setSelectedVenda] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, venda: null });
 
     const { data: vendasPage, isLoading: loading } = useQuery({
         queryKey: ['vendas', page],
@@ -35,6 +38,24 @@ function Vendas() {
             setDetailOpen(true);
         } catch {
             toast.error('Erro ao carregar detalhes');
+        }
+    };
+
+    const handleDeleteClick = (venda) => {
+        setConfirmDelete({ isOpen: true, venda });
+    };
+
+    const executeDelete = async () => {
+        try {
+            await vendaService.delete(confirmDelete.venda.id);
+            toast.success('Venda excluída com sucesso');
+            queryClient.invalidateQueries({ queryKey: ['vendas'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Erro ao excluir venda');
+        } finally {
+            setConfirmDelete({ isOpen: false, venda: null });
         }
     };
 
@@ -65,6 +86,13 @@ function Vendas() {
             render: (row) => row.clienteNome || 'Consumidor',
         },
         {
+            header: 'Desconto',
+            key: 'desconto',
+            render: (row) => row.desconto && parseFloat(row.desconto) > 0
+                ? <span style={{ color: 'var(--danger-color)', fontWeight: 500 }}>− {formatCurrency(row.desconto)}</span>
+                : <span style={{ color: 'var(--text-muted)' }}>—</span>,
+        },
+        {
             header: 'Valor Total',
             key: 'valorTotal',
             render: (row) => (
@@ -88,8 +116,18 @@ function Vendas() {
                 loading={loading}
                 searchPlaceholder="Buscar por cliente..."
                 onEdit={(row) => openDetail(row)}
+                onDelete={handleDeleteClick}
                 pagination={pagination}
                 onPageChange={setPage}
+            />
+
+            {/* Confirm Delete Modal */}
+            <ConfirmModal
+                isOpen={confirmDelete.isOpen}
+                title="Excluir Venda"
+                message={`Tem certeza que deseja excluir a venda #${confirmDelete.venda?.id}? O estoque dos produtos será devolvido.`}
+                onConfirm={executeDelete}
+                onClose={() => setConfirmDelete({ isOpen: false, venda: null })}
             />
 
             {/* Detail modal */}
@@ -131,6 +169,15 @@ function Vendas() {
                                         </span>
                                     </div>
                                 ))}
+
+                                {selectedVenda.desconto && parseFloat(selectedVenda.desconto) > 0 && (
+                                    <div className="detail-desconto">
+                                        <span>Desconto</span>
+                                        <span className="desconto-val">
+                                            − {formatCurrency(selectedVenda.desconto)}
+                                        </span>
+                                    </div>
+                                )}
 
                                 <div className="detail-total">
                                     <span>Total</span>
