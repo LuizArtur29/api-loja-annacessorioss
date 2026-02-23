@@ -88,8 +88,7 @@ public class DespesaService {
     public void delete(Long id) {
         Despesa despesa = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Despesa não encontrada com o ID: " + id));
-        despesa.setAtivo(false);
-        repository.save(despesa);
+        repository.delete(despesa);
     }
 
     private void mapDtoToEntity(DespesaRequestDTO dto, Despesa despesa) {

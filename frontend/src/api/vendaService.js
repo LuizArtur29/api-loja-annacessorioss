@@ -7,6 +7,7 @@ const vendaService = {
     getAllNoPagination: () => api.get(`${BASE}/all`),
     getById: (id) => api.get(`${BASE}/${id}`),
     create: (data) => api.post(BASE, data),
+    delete: (id) => api.delete(`${BASE}/${id}`),
 };
 
 export default vendaService;

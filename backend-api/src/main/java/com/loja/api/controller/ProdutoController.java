@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -21,6 +22,11 @@ public class ProdutoController {
 
     public ProdutoController(ProdutoService service) {
         this.service = service;
+    }
+
+    @GetMapping("/valor-total")
+    public ResponseEntity<BigDecimal> valorTotalEstoque() {
+        return ResponseEntity.ok(service.calcularValorTotalEstoque());
     }
 
     @GetMapping

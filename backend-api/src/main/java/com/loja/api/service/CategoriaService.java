@@ -60,8 +60,7 @@ public class CategoriaService {
     public void deletar(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada com id: " + id));
-        categoria.setAtivo(false);
-        categoriaRepository.save(categoria);
+        categoriaRepository.delete(categoria);
     }
 
     private CategoriaResponseDTO toResponseDTO(Categoria categoria) {

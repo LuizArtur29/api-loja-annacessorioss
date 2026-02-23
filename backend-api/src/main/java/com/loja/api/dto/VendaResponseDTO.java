@@ -7,11 +7,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record VendaResponseDTO(
-                Long id,
-                LocalDateTime dataVenda,
-                BigDecimal valorTotal,
-                Long clienteId,
-                String clienteNome,
-                FormaPagamento formaPagamento,
-                List<ItemVendaResponseDTO> itens) {
+        Long id,
+        LocalDateTime dataVenda,
+        BigDecimal valorTotal,
+        BigDecimal desconto,
+        Long clienteId,
+        String clienteNome,
+        FormaPagamento formaPagamento,
+        List<ItemVendaResponseDTO> itens) {
 }

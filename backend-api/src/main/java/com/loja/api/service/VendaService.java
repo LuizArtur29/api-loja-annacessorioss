@@ -89,10 +89,32 @@ public class VendaService {
                         produtoRepository.save(produto);
                 }
 
-                venda.setValorTotal(valorTotal);
+                // Aplicar desconto
+                BigDecimal desconto = dto.desconto() != null ? dto.desconto() : BigDecimal.ZERO;
+                if (desconto.compareTo(valorTotal) > 0) {
+                        throw new IllegalArgumentException("O desconto não pode ser maior que o valor total da venda.");
+                }
+                venda.setDesconto(desconto);
+                venda.setValorTotal(valorTotal.subtract(desconto));
+
                 venda = vendaRepository.save(venda);
 
                 return toResponseDTO(venda);
+        }
+
+        @Transactional
+        public void deletar(Long id) {
+                Venda venda = vendaRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada com id: " + id));
+
+                // Devolver estoque dos produtos
+                for (ItemVenda item : venda.getItens()) {
+                        Produto produto = item.getProduto();
+                        produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() + item.getQuantidade());
+                        produtoRepository.save(produto);
+                }
+
+                vendaRepository.delete(venda);
         }
 
         private VendaResponseDTO toResponseDTO(Venda venda) {
@@ -111,6 +133,7 @@ public class VendaService {
                                 venda.getId(),
                                 venda.getDataVenda(),
                                 venda.getValorTotal(),
+                                venda.getDesconto(),
                                 venda.getCliente() != null ? venda.getCliente().getId() : null,
                                 venda.getCliente() != null ? venda.getCliente().getNome() : "Consumidor Final",
                                 venda.getFormaPagamento(),

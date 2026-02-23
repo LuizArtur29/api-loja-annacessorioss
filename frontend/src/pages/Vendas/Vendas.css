@@ -64,6 +64,19 @@
     font-weight: 700;
 }
 
+.detail-desconto {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.detail-desconto .desconto-val {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
 .detail-total {
     display: flex;
     justify-content: space-between;

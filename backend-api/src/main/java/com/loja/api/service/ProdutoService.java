@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -84,8 +85,14 @@ public class ProdutoService {
     public void deletar(Long id) {
         Produto produto = produtoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
-        produto.setAtivo(false);
-        produtoRepository.save(produto);
+        produtoRepository.delete(produto);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal calcularValorTotalEstoque() {
+        return produtoRepository.findAll().stream()
+                .map(p -> p.getPrecoVenda().multiply(BigDecimal.valueOf(p.getQuantidadeEstoque())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private ProdutoResponseDTO toResponseDTO(Produto produto) {
