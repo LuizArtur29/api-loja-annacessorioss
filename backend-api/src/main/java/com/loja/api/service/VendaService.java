@@ -3,6 +3,7 @@ package com.loja.api.service;
 import com.loja.api.dto.ItemVendaResponseDTO;
 import com.loja.api.dto.VendaRequestDTO;
 import com.loja.api.dto.VendaResponseDTO;
+import com.loja.api.dto.VendaResumoDTO;
 import com.loja.api.exception.ResourceNotFoundException;
 import com.loja.api.model.Cliente;
 import com.loja.api.model.ItemVenda;
@@ -29,15 +30,15 @@ public class VendaService {
         private final ClienteRepository clienteRepository;
 
         @Transactional(readOnly = true)
-        public Page<VendaResponseDTO> listarTodas(Pageable pageable) {
+        public Page<VendaResumoDTO> listarTodas(Pageable pageable) {
                 return vendaRepository.findAll(pageable)
-                                .map(this::toResponseDTO);
+                                .map(this::toResumoDTO);
         }
 
         @Transactional(readOnly = true)
-        public List<VendaResponseDTO> listarTodasSemPaginacao() {
+        public List<VendaResumoDTO> listarTodasSemPaginacao() {
                 return vendaRepository.findAll().stream()
-                                .map(this::toResponseDTO)
+                                .map(this::toResumoDTO)
                                 .toList();
         }
 
@@ -138,5 +139,17 @@ public class VendaService {
                                 venda.getCliente() != null ? venda.getCliente().getNome() : "Consumidor Final",
                                 venda.getFormaPagamento(),
                                 itens);
+        }
+
+        private VendaResumoDTO toResumoDTO(Venda venda) {
+                return new VendaResumoDTO(
+                        venda.getId(),
+                        venda.getDataVenda(),
+                        venda.getValorTotal(),
+                        venda.getDesconto(),
+                        venda.getCliente() != null ? venda.getCliente().getId() : null,
+                        venda.getCliente() != null ? venda.getCliente().getNome() : "Consumidor Final",
+                        venda.getFormaPagamento()
+                );
         }
 }
