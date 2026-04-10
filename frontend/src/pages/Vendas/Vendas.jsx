@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { LuX } from 'react-icons/lu';
@@ -45,10 +45,10 @@ function Vendas() {
 
     useEffect(() => {
         if (vendasPage && !vendasPage.last) {
-            queryClient.prefecthQuery({
+            queryClient.prefetchQuery({
                 queryKey: ['vendas', page + 1],
                 queryFn: async () => {
-                    const res = await vendaService.getAll(page + 1, 10);
+                    const res = await vendaService.getAll(page + 1, 2);
                     return res.data;
             },
             staleTime: 60 * 1000,

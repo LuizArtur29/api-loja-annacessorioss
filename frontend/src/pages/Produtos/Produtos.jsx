@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
@@ -20,7 +20,8 @@ function Produtos() {
         queryFn: async () => {
             const res = await produtoService.getAll(page, 10);
             return res.data;
-        }
+        },
+        staleTime: 60 * 1000,
     });
 
     // Busca sem paginação para selects / dropdowns
@@ -49,6 +50,19 @@ function Produtos() {
         first: produtosPage.first,
         last: produtosPage.last,
     } : null;
+
+    useEffect(() => {
+        if (produtosPage && !produtosPage.last) {
+            queryClient.prefetchQuery({
+                queryKey: ['produtos', page + 1],
+                queryFn: async () => {
+                    const res = await produtoService.getAll(page + 1, 10);
+                    return res.data;
+                },
+                staleTime: 60 * 1000,
+            });
+        }
+    }, [produtosPage, page, queryClient]);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);

@@ -2,19 +2,33 @@ import { useState } from 'react';
 import { LuSearch, LuPlus, LuPen, LuTrash2, LuInbox, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import './DataTable.css';
 
+const getVisiblePages = (currentPage, totalPages) => {
+    const total = totalPages || 1;
+    if (total <= 5) {
+        return Array.from({ length: total }, (_, i) => i);
+    }
+    if (currentPage <= 2) {
+        return [0, 1, 2, 3, 4];
+    }
+    if (currentPage >= total - 3) {
+        return [total - 5, total - 4, total - 3, total - 2, total - 1];
+    }
+    return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+};
+
 function DataTable({
-    columns,
-    data,
-    loading,
-    searchPlaceholder = 'Buscar...',
-    onAdd,
-    addLabel = 'Novo',
-    onEdit,
-    onDelete,
-    // Pagination props
-    pagination,
-    onPageChange,
-}) {
+                       columns,
+                       data,
+                       loading,
+                       searchPlaceholder = 'Buscar...',
+                       onAdd,
+                       addLabel = 'Novo',
+                       onEdit,
+                       onDelete,
+                       // Pagination props
+                       pagination,
+                       onPageChange,
+                   }) {
     const [search, setSearch] = useState('');
 
     const filtered = data.filter((row) => {
@@ -57,51 +71,51 @@ function DataTable({
             ) : (
                 <table className="data-table">
                     <thead>
-                        <tr>
-                            {columns.map((col) => (
-                                <th key={col.key || col.header}>{col.header}</th>
-                            ))}
-                            {(onEdit || onDelete) && <th>Ações</th>}
-                        </tr>
+                    <tr>
+                        {columns.map((col) => (
+                            <th key={col.key || col.header}>{col.header}</th>
+                        ))}
+                        {(onEdit || onDelete) && <th>Ações</th>}
+                    </tr>
                     </thead>
                     <tbody>
-                        {filtered.map((row, idx) => (
-                            <tr key={row.id || idx}>
-                                {columns.map((col) => (
-                                    <td key={col.key || col.header}>
-                                        {col.render
-                                            ? col.render(row)
-                                            : col.accessor
-                                                ? col.accessor(row)
-                                                : row[col.key]}
-                                    </td>
-                                ))}
-                                {(onEdit || onDelete) && (
-                                    <td>
-                                        <div className="table-actions">
-                                            {onEdit && (
-                                                <button
-                                                    className="btn btn-ghost"
-                                                    onClick={() => onEdit(row)}
-                                                    title="Editar"
-                                                >
-                                                    <LuPen />
-                                                </button>
-                                            )}
-                                            {onDelete && (
-                                                <button
-                                                    className="btn btn-danger"
-                                                    onClick={() => onDelete(row)}
-                                                    title="Excluir"
-                                                >
-                                                    <LuTrash2 />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                )}
-                            </tr>
-                        ))}
+                    {filtered.map((row, idx) => (
+                        <tr key={row.id || idx}>
+                            {columns.map((col) => (
+                                <td key={col.key || col.header}>
+                                    {col.render
+                                        ? col.render(row)
+                                        : col.accessor
+                                            ? col.accessor(row)
+                                            : row[col.key]}
+                                </td>
+                            ))}
+                            {(onEdit || onDelete) && (
+                                <td>
+                                    <div className="table-actions">
+                                        {onEdit && (
+                                            <button
+                                                className="btn btn-ghost"
+                                                onClick={() => onEdit(row)}
+                                                title="Editar"
+                                            >
+                                                <LuPen />
+                                            </button>
+                                        )}
+                                        {onDelete && (
+                                            <button
+                                                className="btn btn-danger"
+                                                onClick={() => onDelete(row)}
+                                                title="Excluir"
+                                            >
+                                                <LuTrash2 />
+                                            </button>
+                                        )}
+                                    </div>
+                                </td>
+                            )}
+                        </tr>
+                    ))}
                     </tbody>
                 </table>
             )}
@@ -122,6 +136,18 @@ function DataTable({
                         >
                             <LuChevronLeft />
                         </button>
+
+                        {/* Correção feita aqui: pagination.totalPages com 's' */}
+                        {getVisiblePages(pagination.number, pagination.totalPages).map((pageNum) => (
+                            <button
+                                key={pageNum}
+                                className={`btn btn-ghost page-number ${pageNum === pagination.number ? 'active' : ''}`}
+                                onClick={() => onPageChange(pageNum)}
+                            >
+                                {pageNum + 1}
+                            </button>
+                        ))}
+
                         <button
                             className="btn btn-ghost"
                             disabled={pagination.last}
