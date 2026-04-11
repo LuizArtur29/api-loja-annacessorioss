@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { LuX } from 'react-icons/lu';
@@ -6,6 +6,17 @@ import vendaService from '../../api/vendaService';
 import DataTable from '../../components/DataTable/DataTable';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import './Vendas.css';
+
+const formatCurrency = (value) =>
+    new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(value);
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+    });
+};
 
 function Vendas() {
     const queryClient = useQueryClient();
@@ -19,7 +30,8 @@ function Vendas() {
         queryFn: async () => {
             const res = await vendaService.getAll(page, 10);
             return res.data;
-        }
+        },
+        staleTime: 60 * 1000,
     });
 
     const vendas = vendasPage?.content || [];
@@ -30,6 +42,19 @@ function Vendas() {
         first: vendasPage.first,
         last: vendasPage.last,
     } : null;
+
+    useEffect(() => {
+        if (vendasPage && !vendasPage.last) {
+            queryClient.prefetchQuery({
+                queryKey: ['vendas', page + 1],
+                queryFn: async () => {
+                    const res = await vendaService.getAll(page + 1, 2);
+                    return res.data;
+            },
+            staleTime: 60 * 1000,
+            });
+        }
+    }, [vendasPage, page, queryClient]);
 
     const openDetail = async (venda) => {
         try {

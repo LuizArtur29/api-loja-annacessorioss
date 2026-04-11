@@ -2,6 +2,7 @@ package com.loja.api.controller;
 
 import com.loja.api.dto.VendaRequestDTO;
 import com.loja.api.dto.VendaResponseDTO;
+import com.loja.api.dto.VendaResumoDTO;
 import com.loja.api.service.VendaService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -24,13 +25,13 @@ public class VendaController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<VendaResponseDTO>> listarTodas(
+    public ResponseEntity<Page<VendaResumoDTO>> listarTodas(
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(service.listarTodas(pageable));
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<VendaResponseDTO>> listarTodasSemPaginacao() {
+    public ResponseEntity<List<VendaResumoDTO>> listarTodasSemPaginacao() {
         return ResponseEntity.ok(service.listarTodasSemPaginacao());
     }
 
