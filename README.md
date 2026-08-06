@@ -13,11 +13,13 @@ Sistema de gestão comercial de uso interno da Ana Acessórios. O projeto contro
 
 - Java 21
 - Node.js 24
-- PostgreSQL 17, ou Docker com Compose
+- Docker (necessário para os testes de integração e para o ambiente via Compose)
 
 ## Executando os testes
 
-O backend usa H2 apenas no perfil de testes; nenhuma credencial de produção é necessária.
+Os testes unitários usam H2. A suíte de integração inicia automaticamente um
+PostgreSQL 17 isolado com Testcontainers, portanto exige que o Docker esteja em
+execução. Nenhuma credencial de produção é necessária.
 
 ```bash
 cd backend-api
