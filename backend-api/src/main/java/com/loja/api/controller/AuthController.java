@@ -1,6 +1,7 @@
 package com.loja.api.controller;
 
 import com.loja.api.dto.AuthResponseDTO;
+import com.loja.api.dto.ApiErrorResponse;
 import com.loja.api.dto.LoginRequestDTO;
 import com.loja.api.model.Usuario;
 import com.loja.api.repository.UsuarioRepository;
@@ -32,7 +33,8 @@ public class AuthController {
 
         if (loginAttemptService.isBlocked(attemptKey)) {
             return ResponseEntity.status(429)
-                    .body(java.util.Map.of("message", "Muitas tentativas. Tente novamente mais tarde."));
+                    .body(ApiErrorResponse.of(429, "LOGIN_RATE_LIMITED", "Muitas tentativas",
+                            "Muitas tentativas. Tente novamente mais tarde.", httpRequest.getRequestURI()));
         }
 
         try {
@@ -41,7 +43,8 @@ public class AuthController {
         } catch (AuthenticationException e) {
             loginAttemptService.loginFailed(attemptKey);
             return ResponseEntity.status(401)
-                    .body(java.util.Map.of("message", "Usuário ou senha inválidos"));
+                    .body(ApiErrorResponse.of(401, "INVALID_CREDENTIALS", "Falha de autenticação",
+                            "Usuário ou senha inválidos", httpRequest.getRequestURI()));
         }
 
         Usuario usuario = usuarioRepository.findByUsername(username)

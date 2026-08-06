@@ -2,9 +2,11 @@ package com.loja.api.controller;
 
 import com.loja.api.dto.ProdutoRequestDTO;
 import com.loja.api.dto.ProdutoResponseDTO;
+import com.loja.api.dto.MovimentacaoEstoqueResponseDTO;
+import com.loja.api.dto.PageResponse;
+import com.loja.api.service.MovimentacaoEstoqueService;
 import com.loja.api.service.ProdutoService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -19,9 +21,11 @@ import java.util.List;
 public class ProdutoController {
 
     private final ProdutoService service;
+    private final MovimentacaoEstoqueService movimentacaoEstoqueService;
 
-    public ProdutoController(ProdutoService service) {
+    public ProdutoController(ProdutoService service, MovimentacaoEstoqueService movimentacaoEstoqueService) {
         this.service = service;
+        this.movimentacaoEstoqueService = movimentacaoEstoqueService;
     }
 
     @GetMapping("/valor-total")
@@ -30,10 +34,10 @@ public class ProdutoController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProdutoResponseDTO>> listarTodos(
+    public ResponseEntity<PageResponse<ProdutoResponseDTO>> listarTodos(
             @RequestParam(defaultValue = "") String q,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.listarTodos(q, pageable));
+        return ResponseEntity.ok(PageResponse.from(service.listarTodos(q, pageable)));
     }
 
     @GetMapping("/all")
@@ -44,6 +48,15 @@ public class ProdutoController {
     @GetMapping("/{id}")
     public ResponseEntity<ProdutoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
+    }
+
+    @GetMapping("/{id}/movimentacoes")
+    public ResponseEntity<PageResponse<MovimentacaoEstoqueResponseDTO>> listarMovimentacoes(
+            @PathVariable Long id,
+            @PageableDefault(size = 20, sort = "dataMovimentacao", direction = org.springframework.data.domain.Sort.Direction.DESC)
+            Pageable pageable) {
+        service.buscarPorId(id);
+        return ResponseEntity.ok(PageResponse.from(movimentacaoEstoqueService.listarPorProduto(id, pageable)));
     }
 
     @PostMapping

@@ -29,8 +29,17 @@ cd backend-api
 ```bash
 cd frontend
 npm ci
+npm run lint
+npm run test:coverage
 npm run build
 ```
+
+## Contrato da API
+
+Com `SPRINGDOC_ENABLED=true` no ambiente local, o contrato OpenAPI fica disponível em
+`http://localhost:8080/v3/api-docs` e a interface Swagger em
+`http://localhost:8080/swagger-ui.html`. Esses caminhos não são publicados pelo
+Caddy de produção. A documentação permanece desabilitada por padrão.
 
 ## Configuração do backend
 
@@ -97,6 +106,8 @@ O frontend e a API são publicados no mesmo domínio. O PostgreSQL não possui p
 - Categorias com produtos ativos não podem ser inativadas.
 - Parcelas sempre preservam o valor total exato.
 - Vendas canceladas não entram no dashboard.
+- Toda alteração de saldo gera uma movimentação de estoque na mesma transação.
+- O histórico de estoque pode ser consultado em `GET /api/produtos/{id}/movimentacoes`.
 
 ## Backup
 

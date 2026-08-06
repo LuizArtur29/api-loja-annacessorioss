@@ -15,12 +15,6 @@ function Sidebar({ isOpen, onClose }) {
     const navigate = useNavigate();
     const user = authService.getUser();
 
-    const handleNavigation = (path) => {
-        if (onClose) onClose();
-        // Se for o mesmo path, não faz nada mas fecha o menu.
-        // O NavLink já cuida da navegação, mas aqui garantimos o fechamento
-    };
-
     const handleLogout = () => {
         authService.logout();
         navigate('/login', { replace: true });

@@ -42,8 +42,8 @@ public class ClienteService {
     @Transactional
     public ClienteResponseDTO criar(ClienteRequestDTO dto) {
         Cliente cliente = new Cliente();
-        cliente.setNome(dto.nome());
-        cliente.setTelefone(dto.telefone());
+        cliente.setNome(dto.nome().trim());
+        cliente.setTelefone(normalizeOptional(dto.telefone()));
         cliente = clienteRepository.save(cliente);
         return toResponseDTO(cliente);
     }
@@ -52,8 +52,8 @@ public class ClienteService {
     public ClienteResponseDTO atualizar(Long id, ClienteRequestDTO dto) {
         Cliente cliente = clienteRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com id: " + id));
-        cliente.setNome(dto.nome());
-        cliente.setTelefone(dto.telefone());
+        cliente.setNome(dto.nome().trim());
+        cliente.setTelefone(normalizeOptional(dto.telefone()));
         cliente = clienteRepository.save(cliente);
         return toResponseDTO(cliente);
     }
@@ -68,5 +68,9 @@ public class ClienteService {
 
     private ClienteResponseDTO toResponseDTO(Cliente cliente) {
         return new ClienteResponseDTO(cliente.getId(), cliente.getNome(), cliente.getTelefone());
+    }
+
+    private String normalizeOptional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

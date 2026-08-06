@@ -9,6 +9,7 @@ import com.loja.api.repository.CategoriaRepository;
 import com.loja.api.repository.ClienteRepository;
 import com.loja.api.repository.DespesaRepository;
 import com.loja.api.repository.ItemVendaRepository;
+import com.loja.api.repository.MovimentacaoEstoqueRepository;
 import com.loja.api.repository.ProdutoRepository;
 import com.loja.api.repository.VendaRepository;
 import com.loja.api.service.VendaService;
@@ -37,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,6 +48,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "springdotenv.enabled=false",
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.flyway.enabled=true",
+        "springdoc.api-docs.enabled=true",
+        "springdoc.swagger-ui.enabled=true",
         "jwt.secret=SW50ZWdyYXRpb24tdGVzdC1zZWNyZXQtdGhhdC1pcy1sb25nLWVub3VnaC0xMjM0NTY=",
         "app.bootstrap.admin.username=integration-admin",
         "app.bootstrap.admin.password=integration-password-123"
@@ -75,6 +79,9 @@ class ErpApiIntegrationTests {
     private ItemVendaRepository itemVendaRepository;
 
     @Autowired
+    private MovimentacaoEstoqueRepository movimentacaoEstoqueRepository;
+
+    @Autowired
     private VendaRepository vendaRepository;
 
     @Autowired
@@ -91,6 +98,7 @@ class ErpApiIntegrationTests {
 
     @BeforeEach
     void limparDadosDeNegocio() {
+        movimentacaoEstoqueRepository.deleteAllInBatch();
         itemVendaRepository.deleteAllInBatch();
         vendaRepository.deleteAllInBatch();
         produtoRepository.deleteAllInBatch();
@@ -113,6 +121,14 @@ class ErpApiIntegrationTests {
     }
 
     @Test
+    void devePublicarContratoOpenApiQuandoExplicitamenteHabilitado() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.title").value("ERP Ana Acessórios API"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"));
+    }
+
+    @Test
     void deveAutenticarERejeitarSenhaInvalida() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,6 +142,35 @@ class ErpApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.username").value(ADMIN_USERNAME));
+    }
+
+    @Test
+    void deveProtegerEndpointsEPadronizarErroDeAutenticacao() throws Exception {
+        mockMvc.perform(get("/api/produtos"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.message").value("Autenticação necessária"))
+                .andExpect(jsonPath("$.path").value("/api/produtos"));
+    }
+
+    @Test
+    void deveRetornarCamposInvalidosEmContratoEstavel() throws Exception {
+        String token = autenticar();
+
+        mockMvc.perform(post("/api/produtos")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome":"", "precoVenda":0, "quantidadeEstoque":-1}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.path").value("/api/produtos"))
+                .andExpect(jsonPath("$.fields.nome").exists())
+                .andExpect(jsonPath("$.fields.precoVenda").exists())
+                .andExpect(jsonPath("$.fields.quantidadeEstoque").exists())
+                .andExpect(jsonPath("$.fields.categoriaId").exists());
     }
 
     @Test
@@ -147,6 +192,9 @@ class ErpApiIntegrationTests {
 
         assertThat(produtoRepository.findById(produtoId).orElseThrow().getQuantidadeEstoque()).isEqualTo(3);
         assertThat(vendaRepository.findById(vendaId).orElseThrow().getStatus()).isEqualTo(StatusVenda.CANCELADA);
+        assertThat(movimentacaoEstoqueRepository.findAll())
+                .extracting(movimentacao -> movimentacao.getTipo().name())
+                .containsExactly("ESTOQUE_INICIAL", "VENDA", "CANCELAMENTO_VENDA");
     }
 
     @Test
@@ -164,6 +212,77 @@ class ErpApiIntegrationTests {
 
         assertThat(produtoRepository.findById(produtoId).orElseThrow().getQuantidadeEstoque()).isEqualTo(1);
         assertThat(vendaRepository.count()).isZero();
+    }
+
+    @Test
+    void deveRegistrarAjusteManualEListarHistoricoDoProduto() throws Exception {
+        String token = autenticar();
+        long categoriaId = criarCategoria(token, "Tiaras");
+        long produtoId = criarProduto(token, categoriaId, "Tiara", "30.00", 2);
+
+        mockMvc.perform(put("/api/produtos/{id}", produtoId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nome":"Tiara Premium",
+                                  "codigo":" T-1 ",
+                                  "descricao":" ",
+                                  "precoVenda":35.00,
+                                  "quantidadeEstoque":5,
+                                  "categoriaId":%d
+                                }
+                                """.formatted(categoriaId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.codigo").value("T-1"))
+                .andExpect(jsonPath("$.descricao").doesNotExist());
+
+        mockMvc.perform(get("/api/produtos/{id}/movimentacoes", produtoId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[0].tipo").value("AJUSTE_MANUAL"))
+                .andExpect(jsonPath("$.content[0].quantidade").value(3))
+                .andExpect(jsonPath("$.content[0].saldoAnterior").value(2))
+                .andExpect(jsonPath("$.content[0].saldoPosterior").value(5));
+    }
+
+    @Test
+    void deveImpedirInativacaoDeCategoriaComProdutoAtivo() throws Exception {
+        String token = autenticar();
+        long categoriaId = criarCategoria(token, "Bolsas");
+        criarProduto(token, categoriaId, "Bolsa", "80.00", 1);
+
+        mockMvc.perform(delete("/api/categorias/{id}", categoriaId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"))
+                .andExpect(jsonPath("$.message").value(
+                        "Não é possível inativar uma categoria com produtos ativos."));
+    }
+
+    @Test
+    void deveInativarClienteSemApagarRegistroHistorico() throws Exception {
+        String token = autenticar();
+        String cliente = mockMvc.perform(post("/api/clientes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"  Maria  \",\"telefone\":\" 81999990000 \"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nome").value("Maria"))
+                .andReturn().getResponse().getContentAsString();
+        long clienteId = id(cliente);
+
+        mockMvc.perform(delete("/api/clientes/{id}", clienteId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/clientes/{id}", clienteId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
+
+        assertThat(clienteRepository.findById(clienteId)).isPresent();
+        assertThat(clienteRepository.findById(clienteId).orElseThrow().isAtivo()).isFalse();
     }
 
     @Test

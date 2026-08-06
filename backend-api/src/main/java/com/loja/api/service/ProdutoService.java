@@ -5,6 +5,7 @@ import com.loja.api.dto.ProdutoResponseDTO;
 import com.loja.api.exception.ResourceNotFoundException;
 import com.loja.api.model.Categoria;
 import com.loja.api.model.Produto;
+import com.loja.api.model.enums.TipoMovimentacaoEstoque;
 import com.loja.api.repository.CategoriaRepository;
 import com.loja.api.repository.ProdutoRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class ProdutoService {
 
     private final ProdutoRepository produtoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final MovimentacaoEstoqueService movimentacaoEstoqueService;
 
     @Transactional(readOnly = true)
     public Page<ProdutoResponseDTO> listarTodos(String q, Pageable pageable) {
@@ -50,34 +52,44 @@ public class ProdutoService {
                         () -> new ResourceNotFoundException("Categoria não encontrada com id: " + dto.categoriaId()));
 
         Produto produto = new Produto();
-        produto.setNome(dto.nome());
-        produto.setCodigo(dto.codigo());
-        produto.setDescricao(dto.descricao());
+        produto.setNome(dto.nome().trim());
+        produto.setCodigo(normalizeOptional(dto.codigo()));
+        produto.setDescricao(normalizeOptional(dto.descricao()));
         produto.setPrecoVenda(dto.precoVenda());
         produto.setQuantidadeEstoque(dto.quantidadeEstoque());
         produto.setCategoria(categoria);
 
         produto = produtoRepository.save(produto);
+        if (produto.getQuantidadeEstoque() > 0) {
+            movimentacaoEstoqueService.registrar(produto, null, TipoMovimentacaoEstoque.ESTOQUE_INICIAL,
+                    produto.getQuantidadeEstoque(), 0, produto.getQuantidadeEstoque(), "Cadastro do produto");
+        }
         return toResponseDTO(produto);
     }
 
     @Transactional
     public ProdutoResponseDTO atualizar(Long id, ProdutoRequestDTO dto) {
-        Produto produto = produtoRepository.findByIdAndAtivoTrue(id)
+        Produto produto = produtoRepository.findActiveByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
 
         Categoria categoria = categoriaRepository.findByIdAndAtivoTrue(dto.categoriaId())
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Categoria não encontrada com id: " + dto.categoriaId()));
 
-        produto.setNome(dto.nome());
-        produto.setCodigo(dto.codigo());
-        produto.setDescricao(dto.descricao());
+        int saldoAnterior = produto.getQuantidadeEstoque();
+        produto.setNome(dto.nome().trim());
+        produto.setCodigo(normalizeOptional(dto.codigo()));
+        produto.setDescricao(normalizeOptional(dto.descricao()));
         produto.setPrecoVenda(dto.precoVenda());
         produto.setQuantidadeEstoque(dto.quantidadeEstoque());
         produto.setCategoria(categoria);
 
         produto = produtoRepository.save(produto);
+        int diferenca = produto.getQuantidadeEstoque() - saldoAnterior;
+        if (diferenca != 0) {
+            movimentacaoEstoqueService.registrar(produto, null, TipoMovimentacaoEstoque.AJUSTE_MANUAL,
+                    diferenca, saldoAnterior, produto.getQuantidadeEstoque(), "Atualização manual do produto");
+        }
         return toResponseDTO(produto);
     }
 
@@ -110,5 +122,9 @@ public class ProdutoService {
 
     private String normalizeQuery(String q) {
         return q == null ? "" : q.trim();
+    }
+
+    private String normalizeOptional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

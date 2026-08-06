@@ -20,7 +20,7 @@ const CustomTooltip = ({ active, payload, label, formatCurrency }) => {
 };
 
 /* ── Custom Pie Label ── */
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent }) => {
     if (percent < 0.05) return null;
     const RADIAN = Math.PI / 180;
     const radius = outerRadius + 22;

@@ -78,11 +78,6 @@ function Despesas() {
 
 
     /* ── Handlers ── */
-    const resetForm = () => setForm({
-        descricao: '', valor: '', dataPagamento: '', categoria: '',
-        status: 'PENDENTE', formaPagamento: '', observacoes: '', parcelas: 1
-    });
-
     const openNew = () => {
         setEditing(null);
         setForm({
@@ -153,7 +148,7 @@ function Despesas() {
             toast.success('Despesa excluída');
             queryClient.invalidateQueries({ queryKey: ['despesas'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        } catch (err) {
+        } catch {
             toast.error('Erro ao excluir');
         } finally {
             setConfirmDelete({ isOpen: false, despesa: null });

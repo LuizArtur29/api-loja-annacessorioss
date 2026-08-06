@@ -2,11 +2,11 @@ package com.loja.api.controller;
 
 import com.loja.api.dto.DespesaRequestDTO;
 import com.loja.api.dto.DespesaResponseDTO;
+import com.loja.api.dto.PageResponse;
 import com.loja.api.service.DespesaService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -28,12 +28,12 @@ public class DespesaController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<DespesaResponseDTO>> getAll(
+    public ResponseEntity<PageResponse<DespesaResponseDTO>> getAll(
             @RequestParam @Min(2000) @Max(2100) int ano,
             @RequestParam @Min(1) @Max(12) int mes,
             @RequestParam(defaultValue = "") String q,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.getAll(ano, mes, q, pageable));
+        return ResponseEntity.ok(PageResponse.from(service.getAll(ano, mes, q, pageable)));
     }
 
     @GetMapping("/{id}")

@@ -10,6 +10,7 @@ import com.loja.api.model.ItemVenda;
 import com.loja.api.model.Produto;
 import com.loja.api.model.Venda;
 import com.loja.api.model.enums.StatusVenda;
+import com.loja.api.model.enums.TipoMovimentacaoEstoque;
 import com.loja.api.repository.ClienteRepository;
 import com.loja.api.repository.ProdutoRepository;
 import com.loja.api.repository.VendaRepository;
@@ -31,6 +32,7 @@ public class VendaService {
         private final VendaRepository vendaRepository;
         private final ProdutoRepository produtoRepository;
         private final ClienteRepository clienteRepository;
+        private final MovimentacaoEstoqueService movimentacaoEstoqueService;
 
         @Transactional(readOnly = true)
         public Page<VendaResumoDTO> listarTodas(String q, Pageable pageable) {
@@ -61,6 +63,7 @@ public class VendaService {
                 BigDecimal valorTotal = BigDecimal.ZERO;
 
                 var produtosInformados = new HashSet<Long>();
+                var alteracoesEstoque = new java.util.ArrayList<AlteracaoEstoque>();
                 for (var itemDto : dto.itens()) {
                         if (!produtosInformados.add(itemDto.produtoId())) {
                                 throw new IllegalArgumentException("Cada produto deve aparecer apenas uma vez na venda.");
@@ -86,8 +89,11 @@ public class VendaService {
                         valorTotal = valorTotal.add(
                                         produto.getPrecoVenda().multiply(BigDecimal.valueOf(itemDto.quantidade())));
 
-                        produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - itemDto.quantidade());
+                        int saldoAnterior = produto.getQuantidadeEstoque();
+                        produto.setQuantidadeEstoque(saldoAnterior - itemDto.quantidade());
                         produtoRepository.save(produto);
+                        alteracoesEstoque.add(new AlteracaoEstoque(produto, -itemDto.quantidade(),
+                                        saldoAnterior, produto.getQuantidadeEstoque()));
                 }
 
                 // Aplicar desconto
@@ -100,6 +106,12 @@ public class VendaService {
 
                 venda.setStatus(StatusVenda.ATIVA);
                 venda = vendaRepository.save(venda);
+
+                for (AlteracaoEstoque alteracao : alteracoesEstoque) {
+                        movimentacaoEstoqueService.registrar(alteracao.produto(), venda, TipoMovimentacaoEstoque.VENDA,
+                                        alteracao.quantidade(), alteracao.saldoAnterior(), alteracao.saldoPosterior(),
+                                        "Venda #" + venda.getId());
+                }
 
                 return toResponseDTO(venda);
         }
@@ -116,8 +128,12 @@ public class VendaService {
                 for (ItemVenda item : venda.getItens()) {
                         Produto produto = produtoRepository.findByIdForUpdate(item.getProduto().getId())
                                         .orElseThrow(() -> new IllegalStateException("Produto histórico da venda não encontrado"));
-                        produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() + item.getQuantidade());
+                        int saldoAnterior = produto.getQuantidadeEstoque();
+                        produto.setQuantidadeEstoque(saldoAnterior + item.getQuantidade());
                         produtoRepository.save(produto);
+                        movimentacaoEstoqueService.registrar(produto, venda,
+                                        TipoMovimentacaoEstoque.CANCELAMENTO_VENDA, item.getQuantidade(),
+                                        saldoAnterior, produto.getQuantidadeEstoque(), "Cancelamento da venda #" + venda.getId());
                 }
 
                 venda.setStatus(StatusVenda.CANCELADA);
@@ -162,5 +178,8 @@ public class VendaService {
                         venda.getStatus(),
                         venda.getDataCancelamento()
                 );
+        }
+
+        private record AlteracaoEstoque(Produto produto, int quantidade, int saldoAnterior, int saldoPosterior) {
         }
 }

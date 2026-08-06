@@ -26,13 +26,16 @@ class VendaServiceTests {
 
     private VendaRepository vendaRepository;
     private ProdutoRepository produtoRepository;
+    private MovimentacaoEstoqueService movimentacaoEstoqueService;
     private VendaService service;
 
     @BeforeEach
     void setUp() {
         vendaRepository = mock(VendaRepository.class);
         produtoRepository = mock(ProdutoRepository.class);
-        service = new VendaService(vendaRepository, produtoRepository, mock(ClienteRepository.class));
+        movimentacaoEstoqueService = mock(MovimentacaoEstoqueService.class);
+        service = new VendaService(vendaRepository, produtoRepository, mock(ClienteRepository.class),
+                movimentacaoEstoqueService);
         when(vendaRepository.save(any(Venda.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -87,6 +90,8 @@ class VendaServiceTests {
         assertEquals(10, produto.getQuantidadeEstoque());
         assertEquals(StatusVenda.CANCELADA, venda.getStatus());
         verify(produtoRepository, times(1)).save(produto);
+        verify(movimentacaoEstoqueService, times(1)).registrar(
+                eq(produto), eq(venda), any(), eq(2), eq(8), eq(10), anyString());
     }
 
     private Produto produto(Long id, String nome, String preco, int estoque) {
