@@ -24,28 +24,28 @@ public class ProdutoService {
     private final CategoriaRepository categoriaRepository;
 
     @Transactional(readOnly = true)
-    public Page<ProdutoResponseDTO> listarTodos(Pageable pageable) {
-        return produtoRepository.findAll(pageable)
+    public Page<ProdutoResponseDTO> listarTodos(String q, Pageable pageable) {
+        return produtoRepository.searchActive(normalizeQuery(q), pageable)
                 .map(this::toResponseDTO);
     }
 
     @Transactional(readOnly = true)
     public List<ProdutoResponseDTO> listarTodosSemPaginacao() {
-        return produtoRepository.findAll().stream()
+        return produtoRepository.findByAtivoTrue().stream()
                 .map(this::toResponseDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ProdutoResponseDTO buscarPorId(Long id) {
-        Produto produto = produtoRepository.findById(id)
+        Produto produto = produtoRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
         return toResponseDTO(produto);
     }
 
     @Transactional
     public ProdutoResponseDTO criar(ProdutoRequestDTO dto) {
-        Categoria categoria = categoriaRepository.findById(dto.categoriaId())
+        Categoria categoria = categoriaRepository.findByIdAndAtivoTrue(dto.categoriaId())
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Categoria não encontrada com id: " + dto.categoriaId()));
 
@@ -63,10 +63,10 @@ public class ProdutoService {
 
     @Transactional
     public ProdutoResponseDTO atualizar(Long id, ProdutoRequestDTO dto) {
-        Produto produto = produtoRepository.findById(id)
+        Produto produto = produtoRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
 
-        Categoria categoria = categoriaRepository.findById(dto.categoriaId())
+        Categoria categoria = categoriaRepository.findByIdAndAtivoTrue(dto.categoriaId())
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Categoria não encontrada com id: " + dto.categoriaId()));
 
@@ -83,14 +83,15 @@ public class ProdutoService {
 
     @Transactional
     public void deletar(Long id) {
-        Produto produto = produtoRepository.findById(id)
+        Produto produto = produtoRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
-        produtoRepository.delete(produto);
+        produto.setAtivo(false);
+        produtoRepository.save(produto);
     }
 
     @Transactional(readOnly = true)
     public BigDecimal calcularValorTotalEstoque() {
-        return produtoRepository.findAll().stream()
+        return produtoRepository.findByAtivoTrue().stream()
                 .map(p -> p.getPrecoVenda().multiply(BigDecimal.valueOf(p.getQuantidadeEstoque())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
@@ -105,5 +106,9 @@ public class ProdutoService {
                 produto.getQuantidadeEstoque(),
                 produto.getCategoria().getId(),
                 produto.getCategoria().getNome());
+    }
+
+    private String normalizeQuery(String q) {
+        return q == null ? "" : q.trim();
     }
 }

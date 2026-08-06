@@ -136,8 +136,10 @@ function NovaVenda() {
             toast.success('Venda registada com sucesso!');
 
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-all'] });
             queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
             queryClient.invalidateQueries({ queryKey: ['vendas'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
             navigate('/vendas');
         } catch (err) {

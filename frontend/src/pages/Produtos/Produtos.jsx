@@ -13,12 +13,13 @@ import customSelectStyles from '../../utils/selectStyles';
 function Produtos() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
+    const [search, setSearch] = useState('');
 
     // Busca paginada para a tabela
     const { data: produtosPage, isLoading: loadingProdutos } = useQuery({
-        queryKey: ['produtos', page],
+        queryKey: ['produtos', page, search],
         queryFn: async () => {
-            const res = await produtoService.getAll(page, 10);
+            const res = await produtoService.getAll(page, 10, search);
             return res.data;
         },
         staleTime: 60 * 1000,
@@ -54,15 +55,15 @@ function Produtos() {
     useEffect(() => {
         if (produtosPage && !produtosPage.last) {
             queryClient.prefetchQuery({
-                queryKey: ['produtos', page + 1],
+                queryKey: ['produtos', page + 1, search],
                 queryFn: async () => {
-                    const res = await produtoService.getAll(page + 1, 10);
+                    const res = await produtoService.getAll(page + 1, 10, search);
                     return res.data;
                 },
                 staleTime: 60 * 1000,
             });
         }
-    }, [produtosPage, page, queryClient]);
+    }, [produtosPage, page, search, queryClient]);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -131,6 +132,7 @@ function Produtos() {
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-all'] });
             queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
@@ -148,6 +150,7 @@ function Produtos() {
             await produtoService.delete(confirmDelete.produto.id);
             toast.success('Produto excluído');
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-all'] });
             queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
@@ -244,6 +247,7 @@ function Produtos() {
                 onDelete={handleDeleteClick}
                 pagination={pagination}
                 onPageChange={setPage}
+                onSearchChange={(value) => { setSearch(value); setPage(0); }}
             />
 
             <Modal

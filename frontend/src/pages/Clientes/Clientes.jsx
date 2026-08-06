@@ -10,11 +10,12 @@ import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 function Clientes() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
+    const [search, setSearch] = useState('');
 
     const { data: clientesPage, isLoading: loading } = useQuery({
-        queryKey: ['clientes', page],
+        queryKey: ['clientes', page, search],
         queryFn: async () => {
-            const res = await clienteService.getAll(page, 10);
+            const res = await clienteService.getAll(page, 10, search);
             return res.data;
         }
     });
@@ -67,6 +68,7 @@ function Clientes() {
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
+            queryClient.invalidateQueries({ queryKey: ['clientes-all'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
         } finally {
@@ -84,6 +86,7 @@ function Clientes() {
             await clienteService.delete(cli.id);
             toast.success('Cliente excluído');
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
+            queryClient.invalidateQueries({ queryKey: ['clientes-all'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
         } finally {
@@ -119,6 +122,7 @@ function Clientes() {
                 onDelete={handleDelete}
                 pagination={pagination}
                 onPageChange={setPage}
+                onSearchChange={(value) => { setSearch(value); setPage(0); }}
             />
 
             <Modal

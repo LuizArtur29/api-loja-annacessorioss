@@ -20,21 +20,21 @@ public class ClienteService {
     private final ClienteRepository clienteRepository;
 
     @Transactional(readOnly = true)
-    public Page<ClienteResponseDTO> listarTodos(Pageable pageable) {
-        return clienteRepository.findAll(pageable)
+    public Page<ClienteResponseDTO> listarTodos(String q, Pageable pageable) {
+        return clienteRepository.searchActive(q == null ? "" : q.trim(), pageable)
                 .map(this::toResponseDTO);
     }
 
     @Transactional(readOnly = true)
     public List<ClienteResponseDTO> listarTodosSemPaginacao() {
-        return clienteRepository.findAll().stream()
+        return clienteRepository.findByAtivoTrue().stream()
                 .map(this::toResponseDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ClienteResponseDTO buscarPorId(Long id) {
-        Cliente cliente = clienteRepository.findById(id)
+        Cliente cliente = clienteRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com id: " + id));
         return toResponseDTO(cliente);
     }
@@ -50,7 +50,7 @@ public class ClienteService {
 
     @Transactional
     public ClienteResponseDTO atualizar(Long id, ClienteRequestDTO dto) {
-        Cliente cliente = clienteRepository.findById(id)
+        Cliente cliente = clienteRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com id: " + id));
         cliente.setNome(dto.nome());
         cliente.setTelefone(dto.telefone());
@@ -60,9 +60,10 @@ public class ClienteService {
 
     @Transactional
     public void deletar(Long id) {
-        Cliente cliente = clienteRepository.findById(id)
+        Cliente cliente = clienteRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com id: " + id));
-        clienteRepository.delete(cliente);
+        cliente.setAtivo(false);
+        clienteRepository.save(cliente);
     }
 
     private ClienteResponseDTO toResponseDTO(Cliente cliente) {

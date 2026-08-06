@@ -25,8 +25,9 @@ public class ClienteController {
 
     @GetMapping
     public ResponseEntity<Page<ClienteResponseDTO>> listarTodos(
+            @RequestParam(defaultValue = "") String q,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.listarTodos(pageable));
+        return ResponseEntity.ok(service.listarTodos(q, pageable));
     }
 
     @GetMapping("/all")

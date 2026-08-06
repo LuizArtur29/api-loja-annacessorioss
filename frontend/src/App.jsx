@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -5,14 +6,15 @@ import Layout from './components/Layout/Layout';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute';
 import Login from './pages/Login/Login';
-import Dashboard from './pages/Dashboard/Dashboard';
-import Despesas from './pages/Despesas/Despesas';
-import Categorias from './pages/Categorias/Categorias';
-import Produtos from './pages/Produtos/Produtos';
-import Clientes from './pages/Clientes/Clientes';
-import NovaVenda from './pages/NovaVenda/NovaVenda';
-import Vendas from './pages/Vendas/Vendas';
 import './App.css';
+
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
+const Despesas = lazy(() => import('./pages/Despesas/Despesas'));
+const Categorias = lazy(() => import('./pages/Categorias/Categorias'));
+const Produtos = lazy(() => import('./pages/Produtos/Produtos'));
+const Clientes = lazy(() => import('./pages/Clientes/Clientes'));
+const NovaVenda = lazy(() => import('./pages/NovaVenda/NovaVenda'));
+const Vendas = lazy(() => import('./pages/Vendas/Vendas'));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -42,6 +44,7 @@ function App() {
                     }}
                 />
                 <ErrorBoundary>
+                    <Suspense fallback={<div className="data-table-loading"><div className="spinner" /></div>}>
                     <Routes>
                         {/* Rota pública */}
                         <Route path="/login" element={<Login />} />
@@ -61,6 +64,7 @@ function App() {
                             <Route path="/vendas" element={<Vendas />} />
                         </Route>
                     </Routes>
+                    </Suspense>
                 </ErrorBoundary>
             </BrowserRouter>
         </QueryClientProvider>

@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/vendas")
@@ -26,13 +25,9 @@ public class VendaController {
 
     @GetMapping
     public ResponseEntity<Page<VendaResumoDTO>> listarTodas(
+            @RequestParam(defaultValue = "") String q,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.listarTodas(pageable));
-    }
-
-    @GetMapping("/all")
-    public ResponseEntity<List<VendaResumoDTO>> listarTodasSemPaginacao() {
-        return ResponseEntity.ok(service.listarTodasSemPaginacao());
+        return ResponseEntity.ok(service.listarTodas(q, pageable));
     }
 
     @GetMapping("/{id}")
@@ -46,8 +41,8 @@ public class VendaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        service.deletar(id);
+    public ResponseEntity<Void> cancelar(@PathVariable Long id) {
+        service.cancelar(id);
         return ResponseEntity.noContent().build();
     }
 }

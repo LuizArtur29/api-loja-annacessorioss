@@ -6,7 +6,6 @@ import './Login.css';
 
 function Login() {
     const navigate = useNavigate();
-    const [isRegister, setIsRegister] = useState(false);
     const [username, setUsername] = useState('');
     const [senha, setSenha] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -22,18 +21,9 @@ function Login() {
             return;
         }
 
-        if (isRegister && senha.length < 4) {
-            setError('A senha deve ter no mínimo 4 caracteres');
-            return;
-        }
-
         setLoading(true);
         try {
-            if (isRegister) {
-                await authService.register(username.trim(), senha);
-            } else {
-                await authService.login(username.trim(), senha);
-            }
+            await authService.login(username.trim(), senha);
             navigate('/', { replace: true });
         } catch (err) {
             const msg = err.response?.data?.message || 'Erro ao autenticar';
@@ -51,7 +41,7 @@ function Login() {
                         <LuGem />
                     </div>
                     <h1>Ana Acessórios</h1>
-                    <p>{isRegister ? 'Crie sua conta para começar' : 'Acesse o painel de gestão'}</p>
+                    <p>Acesse o painel de gestão</p>
                 </div>
 
                 <form className="login-form" onSubmit={handleSubmit}>
@@ -80,7 +70,7 @@ function Login() {
                                 placeholder="Digite sua senha"
                                 value={senha}
                                 onChange={(e) => setSenha(e.target.value)}
-                                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                                autoComplete="current-password"
                             />
                             <LuLock />
                             <button
@@ -98,21 +88,9 @@ function Login() {
                         {loading ? (
                             <span className="login-spinner" />
                         ) : (
-                            isRegister ? 'Criar Conta' : 'Entrar'
+                            'Entrar'
                         )}
                     </button>
-
-                    <div className="login-toggle">
-                        <p>
-                            {isRegister ? 'Já tem uma conta? ' : 'Não tem conta? '}
-                            <button
-                                type="button"
-                                onClick={() => { setIsRegister(!isRegister); setError(''); }}
-                            >
-                                {isRegister ? 'Fazer login' : 'Criar conta'}
-                            </button>
-                        </p>
-                    </div>
                 </form>
 
                 <div className="login-footer">

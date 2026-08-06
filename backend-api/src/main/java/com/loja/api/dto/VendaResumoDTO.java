@@ -1,6 +1,7 @@
 package com.loja.api.dto;
 
 import com.loja.api.model.enums.FormaPagamento;
+import com.loja.api.model.enums.StatusVenda;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +13,8 @@ public record VendaResumoDTO(
         BigDecimal desconto,
         Long clienteId,
         String clienteNome,
-        FormaPagamento formaPagamento
+        FormaPagamento formaPagamento,
+        StatusVenda status,
+        LocalDateTime dataCancelamento
         ) {
 }

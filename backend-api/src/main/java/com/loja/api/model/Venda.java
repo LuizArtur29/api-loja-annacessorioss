@@ -1,6 +1,7 @@
 package com.loja.api.model;
 
 import com.loja.api.model.enums.FormaPagamento;
+import com.loja.api.model.enums.StatusVenda;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -40,6 +41,12 @@ public class Venda extends BaseEntity {
     @Column(precision = 10, scale = 2)
     private BigDecimal desconto = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private StatusVenda status = StatusVenda.ATIVA;
+
+    private LocalDateTime dataCancelamento;
+
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemVenda> itens = new ArrayList<>();
 
@@ -47,6 +54,9 @@ public class Venda extends BaseEntity {
     public void prePersist() {
         if (this.dataVenda == null) {
             this.dataVenda = LocalDateTime.now();
+        }
+        if (this.status == null) {
+            this.status = StatusVenda.ATIVA;
         }
     }
 }

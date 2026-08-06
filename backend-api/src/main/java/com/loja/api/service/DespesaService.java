@@ -15,7 +15,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class DespesaService {
@@ -27,21 +26,16 @@ public class DespesaService {
     }
 
     @Transactional(readOnly = true)
-    public Page<DespesaResponseDTO> getAll(Pageable pageable) {
-        return repository.findAll(pageable)
+    public Page<DespesaResponseDTO> getAll(int ano, int mes, String q, Pageable pageable) {
+        java.time.YearMonth periodo = java.time.YearMonth.of(ano, mes);
+        return repository.searchActiveByPeriod(
+                        periodo.atDay(1), periodo.atEndOfMonth(), q == null ? "" : q.trim(), pageable)
                 .map(DespesaResponseDTO::new);
     }
 
     @Transactional(readOnly = true)
-    public List<DespesaResponseDTO> getAllSemPaginacao() {
-        return repository.findAll().stream()
-                .map(DespesaResponseDTO::new)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
     public DespesaResponseDTO getById(Long id) {
-        Despesa despesa = repository.findById(id)
+        Despesa despesa = repository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Despesa não encontrada com o ID: " + id));
         return new DespesaResponseDTO(despesa);
     }
@@ -49,7 +43,8 @@ public class DespesaService {
     @Transactional
     public List<DespesaResponseDTO> create(DespesaRequestDTO dto) {
         int totalParcelas = (dto.parcelas() != null && dto.parcelas() > 1) ? dto.parcelas() : 1;
-        BigDecimal valorParcela = dto.valor().divide(BigDecimal.valueOf(totalParcelas), 2, RoundingMode.HALF_UP);
+        BigDecimal valorParcela = dto.valor().divide(BigDecimal.valueOf(totalParcelas), 2, RoundingMode.DOWN);
+        BigDecimal restante = dto.valor().subtract(valorParcela.multiply(BigDecimal.valueOf(totalParcelas)));
 
         List<Despesa> despesas = new ArrayList<>();
 
@@ -58,7 +53,7 @@ public class DespesaService {
             despesa.setDescricao(totalParcelas > 1
                     ? dto.descricao() + " (" + i + "/" + totalParcelas + ")"
                     : dto.descricao());
-            despesa.setValor(valorParcela);
+            despesa.setValor(i == totalParcelas ? valorParcela.add(restante) : valorParcela);
             despesa.setDataPagamento(dto.dataPagamento().plusMonths(i - 1));
             despesa.setCategoria(dto.categoria());
             despesa.setStatus(dto.status() != null ? dto.status() : StatusPagamento.PENDENTE);
@@ -71,12 +66,12 @@ public class DespesaService {
         }
 
         List<Despesa> saved = repository.saveAll(despesas);
-        return saved.stream().map(DespesaResponseDTO::new).collect(Collectors.toList());
+        return saved.stream().map(DespesaResponseDTO::new).toList();
     }
 
     @Transactional
     public DespesaResponseDTO update(Long id, DespesaRequestDTO dto) {
-        Despesa despesa = repository.findById(id)
+        Despesa despesa = repository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Despesa não encontrada com o ID: " + id));
         mapDtoToEntity(dto, despesa);
 
@@ -86,9 +81,10 @@ public class DespesaService {
 
     @Transactional
     public void delete(Long id) {
-        Despesa despesa = repository.findById(id)
+        Despesa despesa = repository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Despesa não encontrada com o ID: " + id));
-        repository.delete(despesa);
+        despesa.setAtivo(false);
+        repository.save(despesa);
     }
 
     private void mapDtoToEntity(DespesaRequestDTO dto, Despesa despesa) {

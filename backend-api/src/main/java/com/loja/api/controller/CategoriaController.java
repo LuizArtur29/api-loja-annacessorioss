@@ -25,8 +25,9 @@ public class CategoriaController {
 
     @GetMapping
     public ResponseEntity<Page<CategoriaResponseDTO>> listarTodas(
+            @RequestParam(defaultValue = "") String q,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.listarTodas(pageable));
+        return ResponseEntity.ok(service.listarTodas(q, pageable));
     }
 
     @GetMapping("/all")
