@@ -40,6 +40,6 @@
     "react-number-format": "^5.4.5",
     "react-router-dom": "^7.13.0",
     "react-select": "^5.10.2",
-    "recharts": "^3.7.0"
+    "recharts": "^3.10.1"
   }
 }
