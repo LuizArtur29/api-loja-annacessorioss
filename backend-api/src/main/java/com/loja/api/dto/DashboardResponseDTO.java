@@ -11,6 +11,7 @@ public record DashboardResponseDTO(
         BigDecimal totalSaidas,
         BigDecimal totalPendentes,
         BigDecimal saldoLiquido,
+        long quantidadeVendas,
         Map<CategoriaDespesa, BigDecimal> despesasPorCategoria,
         Map<FormaPagamento, Long> vendasPorFormaPagamento) {
 }

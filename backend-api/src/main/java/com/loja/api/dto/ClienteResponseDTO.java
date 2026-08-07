@@ -1,7 +1,10 @@
 package com.loja.api.dto;
 
+import java.time.LocalDate;
+
 public record ClienteResponseDTO(
         Long id,
         String nome,
-        String telefone) {
+        String telefone,
+        LocalDate dataNascimento) {
 }

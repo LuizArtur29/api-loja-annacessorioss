@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute';
 import Login from './pages/Login/Login';
 import './App.css';
+import { PageSkeleton } from './components/Skeleton/Skeleton';
 
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
 const Despesas = lazy(() => import('./pages/Despesas/Despesas'));
@@ -44,7 +45,7 @@ function App() {
                     }}
                 />
                 <ErrorBoundary>
-                    <Suspense fallback={<div className="data-table-loading"><div className="spinner" /></div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                     <Routes>
                         {/* Rota pública */}
                         <Route path="/login" element={<Login />} />

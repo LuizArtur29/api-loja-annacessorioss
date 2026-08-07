@@ -6,6 +6,8 @@ import com.loja.api.dto.VendaResumoDTO;
 import com.loja.api.dto.PageResponse;
 import com.loja.api.dto.CancelamentoVendaRequestDTO;
 import com.loja.api.service.VendaService;
+import com.loja.api.model.enums.FormaPagamento;
+import com.loja.api.model.enums.StatusVenda;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +15,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 
 @RestController
@@ -29,8 +34,19 @@ public class VendaController {
     @GetMapping
     public ResponseEntity<PageResponse<VendaResumoDTO>> listarTodas(
             @RequestParam(defaultValue = "") String q,
+            @RequestParam(required = false) StatusVenda status,
+            @RequestParam(required = false) FormaPagamento formaPagamento,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(service.listarTodas(q, pageable)));
+        if (inicio != null && fim != null && inicio.isAfter(fim)) {
+            throw new IllegalArgumentException("A data inicial não pode ser posterior à data final.");
+        }
+        return ResponseEntity.ok(PageResponse.from(service.listarTodas(
+                q, status, formaPagamento,
+                inicio != null ? inicio.atStartOfDay() : null,
+                fim != null ? fim.atTime(LocalTime.MAX) : null,
+                pageable)));
     }
 
     @GetMapping("/{id}")

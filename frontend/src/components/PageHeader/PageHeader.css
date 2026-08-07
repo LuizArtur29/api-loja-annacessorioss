@@ -1,0 +1,22 @@
+.page-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+}
+.page-heading-copy { min-width: 0; }
+.page-heading h2 { color: var(--text-primary); font-size: clamp(1.6rem, 3vw, 2rem); line-height: 1.2; }
+.page-heading p { margin-top: 0.3rem; color: var(--text-muted); font-size: 0.88rem; }
+.page-heading-eyebrow { display: block; margin-bottom: 0.25rem; color: var(--accent-dark); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.page-heading-actions { display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0; }
+.breadcrumbs { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.65rem; color: var(--text-muted); font-size: 0.72rem; }
+.breadcrumbs > span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.breadcrumbs svg { font-size: 0.7rem; }
+.breadcrumbs a:hover { color: var(--accent-dark); }
+@media (max-width: 600px) {
+    .page-heading { align-items: stretch; flex-direction: column; gap: 1rem; }
+    .page-heading-actions .btn { width: 100%; justify-content: center; }
+}

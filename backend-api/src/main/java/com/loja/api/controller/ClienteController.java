@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -33,6 +34,12 @@ public class ClienteController {
     @GetMapping("/all")
     public ResponseEntity<List<ClienteResponseDTO>> listarTodosSemPaginacao() {
         return ResponseEntity.ok(service.listarTodosSemPaginacao());
+    }
+
+    @GetMapping("/aniversariantes")
+    public ResponseEntity<List<ClienteResponseDTO>> listarAniversariantes(
+            @RequestParam(required = false) LocalDate data) {
+        return ResponseEntity.ok(service.listarAniversariantes(data == null ? LocalDate.now() : data));
     }
 
     @GetMapping("/{id}")

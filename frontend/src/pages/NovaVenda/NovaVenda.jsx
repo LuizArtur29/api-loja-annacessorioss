@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { LuPlus, LuTrash2, LuShoppingCart } from 'react-icons/lu';
+import { LuBanknote, LuBuilding2, LuCreditCard, LuFileText, LuPlus, LuSmartphone, LuTrash2, LuShoppingCart } from 'react-icons/lu';
 import { NumericFormat } from 'react-number-format';
 import Select from 'react-select';
 import produtoService from '../../api/produtoService';
@@ -10,6 +10,7 @@ import clienteService from '../../api/clienteService';
 import vendaService from '../../api/vendaService';
 import customSelectStyles from '../../utils/selectStyles';
 import './NovaVenda.css';
+import PageHeader from '../../components/PageHeader/PageHeader';
 
 function NovaVenda() {
     const navigate = useNavigate();
@@ -40,11 +41,11 @@ function NovaVenda() {
     const [desconto, setDesconto] = useState('');
 
     const formaPagamentoOptions = [
-        { value: 'PIX', label: '📱 Pix' },
-        { value: 'CARTAO', label: '💳 Cartão' },
-        { value: 'DINHEIRO', label: '💵 Dinheiro' },
-        { value: 'TRANSFERENCIA', label: '🏦 Transferência' },
-        { value: 'BOLETO', label: '📄 Boleto' }
+        { value: 'PIX', label: 'Pix', Icon: LuSmartphone },
+        { value: 'CARTAO', label: 'Cartão', Icon: LuCreditCard },
+        { value: 'DINHEIRO', label: 'Dinheiro', Icon: LuBanknote },
+        { value: 'TRANSFERENCIA', label: 'Transferência', Icon: LuBuilding2 },
+        { value: 'BOLETO', label: 'Boleto', Icon: LuFileText }
     ];
 
     const formatCurrency = (value) =>
@@ -155,10 +156,11 @@ function NovaVenda() {
 
     return (
         <div>
-            <div className="page-header">
-                <h2>Nova Venda</h2>
-                <p>Registe uma nova venda no caixa</p>
-            </div>
+            <PageHeader
+                title="Nova Venda"
+                description="Monte o pedido, confira os valores e finalize a venda"
+                breadcrumbs={[{ label: 'Vendas' }, { label: 'Nova venda' }]}
+            />
 
             <div className="nova-venda">
                 <div className="venda-itens">
@@ -167,7 +169,7 @@ function NovaVenda() {
                     </div>
 
                     <div className="add-item-row">
-                        <div className="form-group" style={{ flex: 3 }}>
+                        <div className="form-group add-product-field">
                             <label>Procurar Produto (Nome ou ID)</label>
                             <Select
                                 options={produtoOptions}
@@ -179,11 +181,12 @@ function NovaVenda() {
                                 noOptionsMessage={() => "Nenhum produto encontrado"}
                             />
                         </div>
-                        <div className="form-group" style={{ flex: 0.5 }}>
+                        <div className="form-group quantity-field">
                             <label>Qtd</label>
                             <input
                                 type="number"
                                 min="1"
+                                max={selectedProdutoOption?.produtoCompleto?.quantidadeEstoque || undefined}
                                 value={quantidade}
                                 onChange={(e) => setQuantidade(parseInt(e.target.value) || 1)}
                             />
@@ -192,14 +195,15 @@ function NovaVenda() {
                             className="btn-add-item"
                             onClick={addItem}
                             title="Adicionar item"
+                            disabled={!selectedProdutoOption || quantidade < 1}
                         >
-                            <LuPlus style={{ fontSize: '1.2rem' }} />
+                            <LuPlus />
                         </button>
                     </div>
 
                     {itens.length === 0 ? (
                         <div className="itens-empty">
-                            <LuShoppingCart style={{ fontSize: '2rem', marginBottom: '0.75rem', opacity: 0.5 }} />
+                            <LuShoppingCart className="empty-cart-icon" />
                             <span>Nenhum item adicionado</span>
                         </div>
                     ) : (
@@ -244,6 +248,9 @@ function NovaVenda() {
                             isClearable
                             isSearchable={false}
                             styles={customSelectStyles}
+                            formatOptionLabel={({ label, Icon }) => (
+                                <span className="select-option-icon"><Icon />{label}</span>
+                            )}
                         />
                     </div>
 
@@ -260,27 +267,28 @@ function NovaVenda() {
                             placeholder="R$ 0,00"
                             allowNegative={false}
                         />
+                        {descontoValue > subtotal && <span className="form-error">O desconto não pode ultrapassar o subtotal.</span>}
                     </div>
 
-                    <div style={{ marginTop: 'auto' }}>
+                    <div className="resumo-totals">
                         <div className="resumo-line">
                             <span>Total de Itens</span>
-                            <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
+                            <span className="resumo-value">
                                 {itens.reduce((s, i) => s + i.quantidade, 0)}
                             </span>
                         </div>
 
                         <div className="resumo-line">
                             <span>Subtotal</span>
-                            <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
+                            <span className="resumo-value">
                                 {formatCurrency(subtotal)}
                             </span>
                         </div>
 
                         {descontoValue > 0 && (
-                            <div className="resumo-line" style={{ color: 'var(--danger-color)' }}>
+                            <div className="resumo-line resumo-discount">
                                 <span>Desconto</span>
-                                <span style={{ fontWeight: '600' }}>
+                                <span>
                                     − {formatCurrency(descontoValue)}
                                 </span>
                             </div>
@@ -294,9 +302,9 @@ function NovaVenda() {
                         <button
                             className="btn-finalizar"
                             onClick={handleFinalizar}
-                            disabled={saving || itens.length === 0}
+                            disabled={saving || itens.length === 0 || descontoValue > subtotal}
                         >
-                            <LuShoppingCart style={{ fontSize: '1.2rem' }} />
+                            <LuShoppingCart />
                             {saving ? 'A Registar...' : 'Finalizar Venda'}
                         </button>
                     </div>

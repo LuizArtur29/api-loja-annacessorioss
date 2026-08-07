@@ -3,7 +3,8 @@ import api from './api';
 const BASE = '/produtos';
 
 const produtoService = {
-    getAll: (page = 0, size = 10, q = '') => api.get(BASE, { params: { page, size, q } }),
+    getAll: (page = 0, size = 10, q = '', categoriaId = null, estoqueMax = null) =>
+        api.get(BASE, { params: { page, size, q, ...(categoriaId ? { categoriaId } : {}), ...(estoqueMax != null ? { estoqueMax } : {}) } }),
     getAllNoPagination: () => api.get(`${BASE}/all`),
     getById: (id) => api.get(`${BASE}/${id}`),
     create: (data) => api.post(BASE, data),

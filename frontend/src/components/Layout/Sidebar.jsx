@@ -8,6 +8,7 @@ import {
     LuReceipt,
     LuWallet,
     LuLogOut,
+    LuUserRound,
 } from 'react-icons/lu';
 import authService from '../../api/authService';
 
@@ -80,28 +81,19 @@ function Sidebar({ isOpen, onClose }) {
                     </div>
                 ))}
             </nav>
-            <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="sidebar-footer">
                 {user && (
-                    <span style={{
-                        fontSize: '0.78rem', color: 'var(--text-secondary)',
-                        fontFamily: 'Outfit, sans-serif', fontWeight: 500,
-                    }}>
-                        👤 {user.username}
-                    </span>
+                    <div className="sidebar-user">
+                        <span className="sidebar-user-avatar"><LuUserRound /></span>
+                        <div>
+                            <small>Conta conectada</small>
+                            <strong>{user.username}</strong>
+                        </div>
+                    </div>
                 )}
                 <button
                     onClick={handleLogout}
-                    className="sidebar-link"
-                    style={{
-                        border: 'none', background: 'none', cursor: 'pointer',
-                        width: '100%', textAlign: 'left', color: 'var(--danger-color)',
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '8px 12px', borderRadius: '8px', fontSize: '0.88rem',
-                        fontFamily: 'Outfit, sans-serif', fontWeight: 500,
-                        transition: 'background 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--danger-bg)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                    className="sidebar-link sidebar-logout"
                 >
                     <LuLogOut />
                     Sair

@@ -14,6 +14,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.loja.api.model.enums.StatusVenda;
+import com.loja.api.model.enums.FormaPagamento;
 
 public interface VendaRepository extends JpaRepository<Venda, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -28,8 +29,18 @@ public interface VendaRepository extends JpaRepository<Venda, Long> {
     @Query("""
             select v from Venda v left join v.cliente c
             where (:q = '' or lower(coalesce(c.nome, 'consumidor final')) like lower(concat('%', :q, '%')))
+              and (:status is null or v.status = :status)
+              and (:formaPagamento is null or v.formaPagamento = :formaPagamento)
+              and (:inicio is null or v.dataVenda >= :inicio)
+              and (:fim is null or v.dataVenda <= :fim)
             """)
-    Page<Venda> search(@Param("q") String q, Pageable pageable);
+    Page<Venda> search(
+            @Param("q") String q,
+            @Param("status") StatusVenda status,
+            @Param("formaPagamento") FormaPagamento formaPagamento,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fim") LocalDateTime fim,
+            Pageable pageable);
 
     List<Venda> findByDataVendaBetweenAndStatus(LocalDateTime inicio, LocalDateTime fim, StatusVenda status);
 }

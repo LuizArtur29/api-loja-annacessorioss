@@ -10,6 +10,7 @@ import com.loja.api.model.ItemVenda;
 import com.loja.api.model.Produto;
 import com.loja.api.model.Venda;
 import com.loja.api.model.enums.StatusVenda;
+import com.loja.api.model.enums.FormaPagamento;
 import com.loja.api.model.enums.TipoMovimentacaoEstoque;
 import com.loja.api.repository.ClienteRepository;
 import com.loja.api.repository.ProdutoRepository;
@@ -37,8 +38,9 @@ public class VendaService {
         private final CurrentUserProvider currentUserProvider;
 
         @Transactional(readOnly = true)
-        public Page<VendaResumoDTO> listarTodas(String q, Pageable pageable) {
-                return vendaRepository.search(q == null ? "" : q.trim(), pageable)
+        public Page<VendaResumoDTO> listarTodas(String q, StatusVenda status, FormaPagamento formaPagamento,
+                        LocalDateTime inicio, LocalDateTime fim, Pageable pageable) {
+                return vendaRepository.search(q == null ? "" : q.trim(), status, formaPagamento, inicio, fim, pageable)
                                 .map(this::toResumoDTO);
         }
 

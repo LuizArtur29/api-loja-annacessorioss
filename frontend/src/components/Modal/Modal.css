@@ -86,6 +86,9 @@
     color: var(--text-secondary);
     font-family: 'Outfit', sans-serif;
 }
+.form-error { display: flex; align-items: center; gap: 5px; color: var(--danger-color); font-size: 0.72rem; }
+.form-hint { color: var(--text-muted); font-size: 0.7rem; }
+.button-spinner { animation: spin .7s linear infinite; }
 
 .form-group input,
 .form-group select,
@@ -125,17 +128,6 @@
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     padding-right: 2rem;
-}
-
-.btn-secondary {
-    background: var(--surface-secondary);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
 }
 
 /* Animations */

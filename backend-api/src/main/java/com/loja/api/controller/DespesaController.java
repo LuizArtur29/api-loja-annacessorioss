@@ -15,6 +15,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import org.springframework.format.annotation.DateTimeFormat;
+import com.loja.api.model.enums.StatusPagamento;
+import com.loja.api.model.enums.FormaPagamento;
 
 @RestController
 @RequestMapping("/api/despesas")
@@ -32,8 +37,19 @@ public class DespesaController {
             @RequestParam @Min(2000) @Max(2100) int ano,
             @RequestParam @Min(1) @Max(12) int mes,
             @RequestParam(defaultValue = "") String q,
+            @RequestParam(required = false) StatusPagamento status,
+            @RequestParam(required = false) FormaPagamento formaPagamento,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(service.getAll(ano, mes, q, pageable)));
+        YearMonth periodo = YearMonth.of(ano, mes);
+        LocalDate dataInicial = inicio != null ? inicio : (fim != null ? LocalDate.of(2000, 1, 1) : periodo.atDay(1));
+        LocalDate dataFinal = fim != null ? fim : (inicio != null ? LocalDate.of(2100, 12, 31) : periodo.atEndOfMonth());
+        if (dataInicial.isAfter(dataFinal)) {
+            throw new IllegalArgumentException("A data inicial não pode ser posterior à data final.");
+        }
+        return ResponseEntity.ok(PageResponse.from(service.getAll(
+                dataInicial, dataFinal, q, status, formaPagamento, pageable)));
     }
 
     @GetMapping("/{id}")

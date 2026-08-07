@@ -1,0 +1,12 @@
+.filter-bar { margin-bottom: 1rem; padding: 0.85rem 1rem; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--surface-primary); box-shadow: var(--shadow-sm); }
+.filter-bar-controls { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+.filter-bar-controls > svg { color: var(--accent-dark); }
+.filter-field { display: inline-flex; align-items: center; gap: 0.45rem; }
+.filter-field label { color: var(--text-secondary); font-size: 0.75rem; font-weight: 600; }
+.filter-input { min-height: 36px; padding: 0.4rem 0.7rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface-secondary); color: var(--text-primary); font-size: 0.82rem; }
+.filter-input:focus { border-color: var(--accent-color); outline: none; box-shadow: var(--focus-ring); }
+.filter-chips { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-light); }
+.filter-chip { padding: 0.25rem 0.55rem; border-radius: 999px; background: var(--accent-alpha); color: var(--accent-dark); font-size: 0.72rem; font-weight: 600; }
+.filter-clear { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; color: var(--text-secondary); cursor: pointer; font-size: 0.72rem; font-weight: 600; }
+.filter-clear:hover { color: var(--danger-color); }
+@media (max-width: 600px) { .filter-field { width: 100%; justify-content: space-between; } .filter-input { flex: 1; min-width: 0; } }

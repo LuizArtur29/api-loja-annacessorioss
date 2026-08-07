@@ -38,8 +38,10 @@ public class ProdutoController {
     @GetMapping
     public ResponseEntity<PageResponse<ProdutoResponseDTO>> listarTodos(
             @RequestParam(defaultValue = "") String q,
+            @RequestParam(required = false) Long categoriaId,
+            @RequestParam(required = false) Integer estoqueMax,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(service.listarTodos(q, pageable)));
+        return ResponseEntity.ok(PageResponse.from(service.listarTodos(q, categoriaId, estoqueMax, pageable)));
     }
 
     @GetMapping("/all")

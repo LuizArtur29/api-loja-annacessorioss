@@ -116,7 +116,7 @@ class ErpApiIntegrationTests {
                 "select to_regclass('public.produtos')::text",
                 String.class);
 
-        assertThat(migrations).isEqualTo(3);
+        assertThat(migrations).isEqualTo(4);
         assertThat(produtos).isEqualTo("produtos");
     }
 
@@ -331,6 +331,69 @@ class ErpApiIntegrationTests {
                 .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"))
                 .andExpect(jsonPath("$.message").value(
                         "Não é possível inativar uma categoria com produtos ativos."));
+    }
+
+    @Test
+    void deveFiltrarProdutosAntesDePaginarETambemPorCategoria() throws Exception {
+        String token = autenticar();
+        long brincosId = criarCategoria(token, "Brincos");
+        long colaresId = criarCategoria(token, "Colares");
+
+        for (int i = 1; i <= 11; i++) {
+            criarProduto(token, colaresId, "Colar " + i, "10.00", 1);
+        }
+        for (int i = 1; i <= 12; i++) {
+            criarProduto(token, brincosId, "Brinco " + i, "10.00", 1);
+        }
+
+        mockMvc.perform(get("/api/produtos")
+                        .param("q", "brinco")
+                        .param("page", "1")
+                        .param("size", "10")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(12))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].nome").value(org.hamcrest.Matchers.startsWith("Brinco")));
+
+        mockMvc.perform(get("/api/produtos")
+                        .param("categoriaId", String.valueOf(brincosId))
+                        .param("size", "100")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(12))
+                .andExpect(jsonPath("$.content[*].categoriaId",
+                        org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is((int) brincosId))));
+    }
+
+    @Test
+    void deveCadastrarNascimentoEListarSomenteAniversariantesDoDia() throws Exception {
+        String token = autenticar();
+
+        mockMvc.perform(post("/api/clientes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome":"Maria", "dataNascimento":"1990-08-07"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.dataNascimento").value("1990-08-07"));
+        mockMvc.perform(post("/api/clientes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome":"Ana", "dataNascimento":"1992-08-08"}
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/clientes/aniversariantes")
+                        .param("data", "2026-08-07")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].nome").value("Maria"));
     }
 
     @Test

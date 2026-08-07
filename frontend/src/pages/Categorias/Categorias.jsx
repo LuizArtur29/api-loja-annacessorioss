@@ -1,13 +1,17 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import categoriaService from '../../api/categoriaService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import PageHeader from '../../components/PageHeader/PageHeader';
+import { LuPlus } from 'react-icons/lu';
 
 function Categorias() {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [page, setPage] = useState(0);
     const [search, setSearch] = useState('');
 
@@ -94,20 +98,23 @@ function Categorias() {
 
     return (
         <div>
-            <div className="page-header">
-                <h2>Categorias</h2>
-                <p>Gerencie as categorias de produtos</p>
-            </div>
+            <PageHeader
+                title="Categorias"
+                description="Organize os produtos e facilite a navegação pelo catálogo"
+                breadcrumbs={[{ label: 'Cadastros' }, { label: 'Categorias' }]}
+                actions={<button className="btn btn-primary" onClick={openNew}><LuPlus /> Nova categoria</button>}
+            />
 
             <DataTable
                 columns={columns}
                 data={categorias}
                 loading={loading}
                 searchPlaceholder="Buscar categoria..."
-                onAdd={openNew}
-                addLabel="Nova Categoria"
                 onEdit={openEdit}
                 onDelete={handleDeleteClick}
+                onRowClick={(categoria) => navigate(
+                    `/produtos?categoriaId=${categoria.id}&categoriaNome=${encodeURIComponent(categoria.nome)}`
+                )}
                 pagination={pagination}
                 onPageChange={setPage}
                 onSearchChange={(value) => { setSearch(value); setPage(0); }}
@@ -119,6 +126,7 @@ function Categorias() {
                 title={editing ? 'Editar Categoria' : 'Nova Categoria'}
                 onSubmit={handleSubmit}
                 loading={saving}
+                submitDisabled={!nome.trim()}
             >
                 <div className="form-group">
                     <label>Nome</label>
@@ -129,6 +137,7 @@ function Categorias() {
                         placeholder="Nome da categoria"
                         autoFocus
                     />
+                    {!nome.trim() && <span className="form-error">Informe o nome da categoria.</span>}
                 </div>
             </Modal>
 

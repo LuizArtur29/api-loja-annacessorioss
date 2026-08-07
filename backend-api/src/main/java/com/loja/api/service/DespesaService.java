@@ -15,6 +15,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
+import com.loja.api.model.enums.FormaPagamento;
 
 @Service
 public class DespesaService {
@@ -28,8 +30,14 @@ public class DespesaService {
     @Transactional(readOnly = true)
     public Page<DespesaResponseDTO> getAll(int ano, int mes, String q, Pageable pageable) {
         java.time.YearMonth periodo = java.time.YearMonth.of(ano, mes);
-        return repository.searchActiveByPeriod(
-                        periodo.atDay(1), periodo.atEndOfMonth(), q == null ? "" : q.trim(), pageable)
+        return getAll(periodo.atDay(1), periodo.atEndOfMonth(), q, null, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DespesaResponseDTO> getAll(LocalDate inicio, LocalDate fim, String q,
+            StatusPagamento status, FormaPagamento formaPagamento, Pageable pageable) {
+        return repository.searchActive(
+                        inicio, fim, q == null ? "" : q.trim(), status, formaPagamento, pageable)
                 .map(DespesaResponseDTO::new);
     }
 
