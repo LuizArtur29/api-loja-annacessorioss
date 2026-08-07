@@ -8,6 +8,7 @@ const produtoService = {
     getById: (id) => api.get(`${BASE}/${id}`),
     create: (data) => api.post(BASE, data),
     update: (id, data) => api.put(`${BASE}/${id}`, data),
+    adjustStock: (id, data) => api.post(`${BASE}/${id}/ajustes-estoque`, data),
     delete: (id) => api.delete(`${BASE}/${id}`),
     getValorTotal: () => api.get(`${BASE}/valor-total`),
 };

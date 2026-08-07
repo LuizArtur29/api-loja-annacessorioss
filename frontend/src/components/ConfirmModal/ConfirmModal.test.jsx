@@ -31,4 +31,41 @@ describe('ConfirmModal', () => {
         expect(onConfirm).toHaveBeenCalledOnce();
         expect(onClose).toHaveBeenCalledOnce();
     });
+
+    it('exige o preenchimento do motivo quando solicitado', async () => {
+        const user = userEvent.setup();
+        const onConfirm = vi.fn();
+        const onPromptChange = vi.fn();
+        const { rerender } = render(
+            <ConfirmModal
+                isOpen
+                title="Cancelar venda"
+                message="Confirma?"
+                promptLabel="Motivo"
+                promptValue=""
+                promptRequired
+                onPromptChange={onPromptChange}
+                onConfirm={onConfirm}
+            />,
+        );
+
+        expect(screen.getByRole('button', { name: 'Confirmar' })).toBeDisabled();
+        await user.type(screen.getByLabelText('Motivo *'), 'Cliente desistiu');
+        expect(onPromptChange).toHaveBeenCalled();
+
+        rerender(
+            <ConfirmModal
+                isOpen
+                title="Cancelar venda"
+                message="Confirma?"
+                promptLabel="Motivo"
+                promptValue="Cliente desistiu"
+                promptRequired
+                onPromptChange={onPromptChange}
+                onConfirm={onConfirm}
+            />,
+        );
+        await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+        expect(onConfirm).toHaveBeenCalledOnce();
+    });
 });

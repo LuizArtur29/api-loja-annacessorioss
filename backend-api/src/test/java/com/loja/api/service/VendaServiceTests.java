@@ -10,6 +10,7 @@ import com.loja.api.model.enums.StatusVenda;
 import com.loja.api.repository.ClienteRepository;
 import com.loja.api.repository.ProdutoRepository;
 import com.loja.api.repository.VendaRepository;
+import com.loja.api.security.CurrentUserProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,8 +35,10 @@ class VendaServiceTests {
         vendaRepository = mock(VendaRepository.class);
         produtoRepository = mock(ProdutoRepository.class);
         movimentacaoEstoqueService = mock(MovimentacaoEstoqueService.class);
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        when(currentUserProvider.username()).thenReturn("integration-admin");
         service = new VendaService(vendaRepository, produtoRepository, mock(ClienteRepository.class),
-                movimentacaoEstoqueService);
+                movimentacaoEstoqueService, currentUserProvider);
         when(vendaRepository.save(any(Venda.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -84,11 +87,13 @@ class VendaServiceTests {
         when(vendaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(venda));
         when(produtoRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(produto));
 
-        service.cancelar(1L);
-        service.cancelar(1L);
+        service.cancelar(1L, "Cliente desistiu");
+        service.cancelar(1L, "Cliente desistiu");
 
         assertEquals(10, produto.getQuantidadeEstoque());
         assertEquals(StatusVenda.CANCELADA, venda.getStatus());
+        assertEquals("Cliente desistiu", venda.getMotivoCancelamento());
+        assertEquals("integration-admin", venda.getCanceladoPor());
         verify(produtoRepository, times(1)).save(produto);
         verify(movimentacaoEstoqueService, times(1)).registrar(
                 eq(produto), eq(venda), any(), eq(2), eq(8), eq(10), anyString());

@@ -14,6 +14,7 @@ import com.loja.api.model.enums.TipoMovimentacaoEstoque;
 import com.loja.api.repository.ClienteRepository;
 import com.loja.api.repository.ProdutoRepository;
 import com.loja.api.repository.VendaRepository;
+import com.loja.api.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ public class VendaService {
         private final ProdutoRepository produtoRepository;
         private final ClienteRepository clienteRepository;
         private final MovimentacaoEstoqueService movimentacaoEstoqueService;
+        private final CurrentUserProvider currentUserProvider;
 
         @Transactional(readOnly = true)
         public Page<VendaResumoDTO> listarTodas(String q, Pageable pageable) {
@@ -117,7 +119,7 @@ public class VendaService {
         }
 
         @Transactional
-        public void cancelar(Long id) {
+        public void cancelar(Long id, String motivo) {
                 Venda venda = vendaRepository.findByIdForUpdate(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada com id: " + id));
 
@@ -133,11 +135,13 @@ public class VendaService {
                         produtoRepository.save(produto);
                         movimentacaoEstoqueService.registrar(produto, venda,
                                         TipoMovimentacaoEstoque.CANCELAMENTO_VENDA, item.getQuantidade(),
-                                        saldoAnterior, produto.getQuantidadeEstoque(), "Cancelamento da venda #" + venda.getId());
+                                        saldoAnterior, produto.getQuantidadeEstoque(), motivo.trim());
                 }
 
                 venda.setStatus(StatusVenda.CANCELADA);
                 venda.setDataCancelamento(LocalDateTime.now());
+                venda.setMotivoCancelamento(motivo.trim());
+                venda.setCanceladoPor(currentUserProvider.username());
                 vendaRepository.save(venda);
         }
 
@@ -163,6 +167,8 @@ public class VendaService {
                                 venda.getFormaPagamento(),
                                 venda.getStatus(),
                                 venda.getDataCancelamento(),
+                                venda.getMotivoCancelamento(),
+                                venda.getCanceladoPor(),
                                 itens);
         }
 
@@ -176,7 +182,9 @@ public class VendaService {
                         venda.getCliente() != null ? venda.getCliente().getNome() : "Consumidor Final",
                         venda.getFormaPagamento(),
                         venda.getStatus(),
-                        venda.getDataCancelamento()
+                        venda.getDataCancelamento(),
+                        venda.getMotivoCancelamento(),
+                        venda.getCanceladoPor()
                 );
         }
 

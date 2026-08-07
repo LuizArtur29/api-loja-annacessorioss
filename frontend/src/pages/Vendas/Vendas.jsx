@@ -13,7 +13,7 @@ function Vendas() {
     const [search, setSearch] = useState('');
     const [detailOpen, setDetailOpen] = useState(false);
     const [selectedVenda, setSelectedVenda] = useState(null);
-    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, venda: null });
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, venda: null, motivo: '' });
 
     const { data: vendasPage, isLoading: loading } = useQuery({
         queryKey: ['vendas', page, search],
@@ -61,12 +61,12 @@ function Vendas() {
             toast.error('Esta venda já está cancelada');
             return;
         }
-        setConfirmDelete({ isOpen: true, venda });
+        setConfirmDelete({ isOpen: true, venda, motivo: '' });
     };
 
     const executeDelete = async () => {
         try {
-            await vendaService.delete(confirmDelete.venda.id);
+            await vendaService.cancel(confirmDelete.venda.id, confirmDelete.motivo.trim());
             toast.success('Venda cancelada e estoque devolvido');
             queryClient.invalidateQueries({ queryKey: ['vendas'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -76,7 +76,7 @@ function Vendas() {
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir venda');
         } finally {
-            setConfirmDelete({ isOpen: false, venda: null });
+            setConfirmDelete({ isOpen: false, venda: null, motivo: '' });
         }
     };
 
@@ -154,8 +154,13 @@ function Vendas() {
                 isOpen={confirmDelete.isOpen}
                 title="Cancelar Venda"
                 message={`Tem certeza que deseja cancelar a venda #${confirmDelete.venda?.id}? O histórico será preservado e o estoque será devolvido.`}
+                confirmLabel="Confirmar cancelamento"
+                promptLabel="Motivo do cancelamento"
+                promptValue={confirmDelete.motivo}
+                onPromptChange={(motivo) => setConfirmDelete((current) => ({ ...current, motivo }))}
+                promptRequired
                 onConfirm={executeDelete}
-                onClose={() => setConfirmDelete({ isOpen: false, venda: null })}
+                onClose={() => setConfirmDelete({ isOpen: false, venda: null, motivo: '' })}
             />
 
             {/* Detail modal */}
@@ -179,6 +184,13 @@ function Vendas() {
                                         <label>Cliente</label>
                                         <p>{selectedVenda.clienteNome || 'Consumidor'}</p>
                                     </div>
+                                    {selectedVenda.status === 'CANCELADA' && (
+                                        <div className="detail-field">
+                                            <label>Cancelamento</label>
+                                            <p>{selectedVenda.motivoCancelamento}</p>
+                                            <small>Por {selectedVenda.canceladoPor}</small>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="detail-items-title">Itens</div>

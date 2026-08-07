@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default defineConfig([
-    globalIgnores(['dist', 'coverage']),
+    globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results']),
     {
         files: ['**/*.{js,jsx}'],
         extends: [
@@ -27,7 +27,7 @@ export default defineConfig([
         },
     },
     {
-        files: ['**/*.test.{js,jsx}', 'src/test/**/*.js'],
+        files: ['**/*.test.{js,jsx}', 'src/test/**/*.js', 'e2e/**/*.js', 'playwright.config.js'],
         languageOptions: {
             globals: { ...globals.browser, ...globals.node },
         },

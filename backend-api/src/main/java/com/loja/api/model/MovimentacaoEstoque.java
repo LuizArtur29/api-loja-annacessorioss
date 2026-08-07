@@ -43,6 +43,9 @@ public class MovimentacaoEstoque {
     @Column(nullable = false, length = 255)
     private String motivo;
 
+    @Column(nullable = false, length = 50)
+    private String responsavel;
+
     @Column(name = "data_movimentacao", nullable = false, updatable = false)
     private LocalDateTime dataMovimentacao;
 

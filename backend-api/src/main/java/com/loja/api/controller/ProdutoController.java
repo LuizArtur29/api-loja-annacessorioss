@@ -4,6 +4,8 @@ import com.loja.api.dto.ProdutoRequestDTO;
 import com.loja.api.dto.ProdutoResponseDTO;
 import com.loja.api.dto.MovimentacaoEstoqueResponseDTO;
 import com.loja.api.dto.PageResponse;
+import com.loja.api.dto.AjusteEstoqueRequestDTO;
+import com.loja.api.dto.ProdutoUpdateRequestDTO;
 import com.loja.api.service.MovimentacaoEstoqueService;
 import com.loja.api.service.ProdutoService;
 import jakarta.validation.Valid;
@@ -66,8 +68,18 @@ public class ProdutoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ProdutoResponseDTO> atualizar(@PathVariable Long id,
-            @Valid @RequestBody ProdutoRequestDTO dto) {
-        return ResponseEntity.ok(service.atualizar(id, dto));
+            @Valid @RequestBody ProdutoUpdateRequestDTO dto) {
+        var resposta = ResponseEntity.ok();
+        if (dto.quantidadeEstoque() != null) {
+            resposta.header("Deprecation", "true");
+        }
+        return resposta.body(service.atualizar(id, dto));
+    }
+
+    @PostMapping("/{id}/ajustes-estoque")
+    public ResponseEntity<ProdutoResponseDTO> ajustarEstoque(
+            @PathVariable Long id, @Valid @RequestBody AjusteEstoqueRequestDTO dto) {
+        return ResponseEntity.ok(service.ajustarEstoque(id, dto.novoSaldo(), dto.motivo()));
     }
 
     @DeleteMapping("/{id}")

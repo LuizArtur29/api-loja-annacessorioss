@@ -48,10 +48,11 @@ function Login() {
                     {error && <div className="login-error">{error}</div>}
 
                     <div className="login-field">
-                        <label>Usuário</label>
+                        <label htmlFor="login-username">Usuário</label>
                         <div className="login-input-wrapper">
                             <input
                                 type="text"
+                                id="login-username"
                                 placeholder="Digite seu usuário"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
@@ -63,10 +64,11 @@ function Login() {
                     </div>
 
                     <div className="login-field">
-                        <label>Senha</label>
+                        <label htmlFor="login-password">Senha</label>
                         <div className="login-input-wrapper">
                             <input
                                 type={showPassword ? 'text' : 'password'}
+                                id="login-password"
                                 placeholder="Digite sua senha"
                                 value={senha}
                                 onChange={(e) => setSenha(e.target.value)}
@@ -78,6 +80,7 @@ function Login() {
                                 className="login-toggle-password"
                                 onClick={() => setShowPassword(!showPassword)}
                                 tabIndex={-1}
+                                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                             >
                                 {showPassword ? <LuEyeOff size={18} /> : <LuEye size={18} />}
                             </button>

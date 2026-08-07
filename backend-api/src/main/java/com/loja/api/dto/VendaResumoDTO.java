@@ -15,6 +15,8 @@ public record VendaResumoDTO(
         String clienteNome,
         FormaPagamento formaPagamento,
         StatusVenda status,
-        LocalDateTime dataCancelamento
+        LocalDateTime dataCancelamento,
+        String motivoCancelamento,
+        String canceladoPor
         ) {
 }

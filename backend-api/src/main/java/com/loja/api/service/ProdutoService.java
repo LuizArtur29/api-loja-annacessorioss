@@ -2,6 +2,7 @@ package com.loja.api.service;
 
 import com.loja.api.dto.ProdutoRequestDTO;
 import com.loja.api.dto.ProdutoResponseDTO;
+import com.loja.api.dto.ProdutoUpdateRequestDTO;
 import com.loja.api.exception.ResourceNotFoundException;
 import com.loja.api.model.Categoria;
 import com.loja.api.model.Produto;
@@ -9,6 +10,7 @@ import com.loja.api.model.enums.TipoMovimentacaoEstoque;
 import com.loja.api.repository.CategoriaRepository;
 import com.loja.api.repository.ProdutoRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,10 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProdutoService {
+
+    private static final String MOTIVO_AJUSTE_CLIENTE_LEGADO = "Ajuste via cliente legado";
 
     private final ProdutoRepository produtoRepository;
     private final CategoriaRepository categoriaRepository;
@@ -68,7 +73,7 @@ public class ProdutoService {
     }
 
     @Transactional
-    public ProdutoResponseDTO atualizar(Long id, ProdutoRequestDTO dto) {
+    public ProdutoResponseDTO atualizar(Long id, ProdutoUpdateRequestDTO dto) {
         Produto produto = produtoRepository.findActiveByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
 
@@ -76,20 +81,38 @@ public class ProdutoService {
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Categoria não encontrada com id: " + dto.categoriaId()));
 
-        int saldoAnterior = produto.getQuantidadeEstoque();
         produto.setNome(dto.nome().trim());
         produto.setCodigo(normalizeOptional(dto.codigo()));
         produto.setDescricao(normalizeOptional(dto.descricao()));
         produto.setPrecoVenda(dto.precoVenda());
-        produto.setQuantidadeEstoque(dto.quantidadeEstoque());
         produto.setCategoria(categoria);
 
-        produto = produtoRepository.save(produto);
-        int diferenca = produto.getQuantidadeEstoque() - saldoAnterior;
-        if (diferenca != 0) {
+        if (dto.quantidadeEstoque() != null && dto.quantidadeEstoque() != produto.getQuantidadeEstoque()) {
+            int saldoAnterior = produto.getQuantidadeEstoque();
+            int novoSaldo = dto.quantidadeEstoque();
+            produto.setQuantidadeEstoque(novoSaldo);
             movimentacaoEstoqueService.registrar(produto, null, TipoMovimentacaoEstoque.AJUSTE_MANUAL,
-                    diferenca, saldoAnterior, produto.getQuantidadeEstoque(), "Atualização manual do produto");
+                    novoSaldo - saldoAnterior, saldoAnterior, novoSaldo, MOTIVO_AJUSTE_CLIENTE_LEGADO);
+            log.warn("Ajuste de estoque pelo contrato legado no produto {}. Atualize o frontend antes de remover a compatibilidade.", id);
         }
+
+        produto = produtoRepository.save(produto);
+        return toResponseDTO(produto);
+    }
+
+    @Transactional
+    public ProdutoResponseDTO ajustarEstoque(Long id, int novoSaldo, String motivo) {
+        Produto produto = produtoRepository.findActiveByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id: " + id));
+        int saldoAnterior = produto.getQuantidadeEstoque();
+        int diferenca = novoSaldo - saldoAnterior;
+        if (diferenca == 0) {
+            throw new IllegalArgumentException("O novo saldo deve ser diferente do estoque atual.");
+        }
+        produto.setQuantidadeEstoque(novoSaldo);
+        produtoRepository.save(produto);
+        movimentacaoEstoqueService.registrar(produto, null, TipoMovimentacaoEstoque.AJUSTE_MANUAL,
+                diferenca, saldoAnterior, novoSaldo, motivo.trim());
         return toResponseDTO(produto);
     }
 

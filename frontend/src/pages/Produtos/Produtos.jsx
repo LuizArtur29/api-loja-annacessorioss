@@ -76,6 +76,7 @@ function Produtos() {
         descricao: '',
         precoVenda: '',
         quantidadeEstoque: '',
+        motivoAjuste: '',
         categoriaId: '',
     });
 
@@ -85,7 +86,7 @@ function Produtos() {
     }));
 
     const resetForm = () =>
-        setForm({ nome: '', codigo: '', descricao: '', precoVenda: '', quantidadeEstoque: '', categoriaId: '' });
+        setForm({ nome: '', codigo: '', descricao: '', precoVenda: '', quantidadeEstoque: '', motivoAjuste: '', categoriaId: '' });
 
     const openNew = () => {
         setEditing(null);
@@ -101,6 +102,7 @@ function Produtos() {
             descricao: prod.descricao || '',
             precoVenda: prod.precoVenda,
             quantidadeEstoque: prod.quantidadeEstoque,
+            motivoAjuste: '',
             categoriaId: prod.categoriaId,
         });
         setModalOpen(true);
@@ -115,19 +117,32 @@ function Produtos() {
             toast.error('Preencha os campos obrigatórios');
             return;
         }
+        const novoSaldo = parseInt(form.quantidadeEstoque) || 0;
+        const estoqueAlterado = editing && novoSaldo !== editing.quantidadeEstoque;
+        if (estoqueAlterado && !form.motivoAjuste.trim()) {
+            toast.error('Informe o motivo do ajuste de estoque');
+            return;
+        }
         setSaving(true);
         const payload = {
-            ...form,
+            nome: form.nome,
+            codigo: form.codigo,
+            descricao: form.descricao,
             precoVenda: parseFloat(form.precoVenda),
-            quantidadeEstoque: parseInt(form.quantidadeEstoque) || 0,
             categoriaId: parseInt(form.categoriaId),
         };
         try {
             if (editing) {
                 await produtoService.update(editing.id, payload);
+                if (estoqueAlterado) {
+                    await produtoService.adjustStock(editing.id, {
+                        novoSaldo,
+                        motivo: form.motivoAjuste.trim(),
+                    });
+                }
                 toast.success('Produto atualizado');
             } else {
-                await produtoService.create(payload);
+                await produtoService.create({ ...payload, quantidadeEstoque: novoSaldo });
                 toast.success('Produto criado');
             }
             setModalOpen(false);
@@ -327,6 +342,19 @@ function Produtos() {
                         />
                     </div>
                 </div>
+                {editing && parseInt(form.quantidadeEstoque || '0') !== editing.quantidadeEstoque && (
+                    <div className="form-group">
+                        <label>Motivo do ajuste de estoque *</label>
+                        <input
+                            type="text"
+                            name="motivoAjuste"
+                            value={form.motivoAjuste}
+                            onChange={handleChange}
+                            maxLength={255}
+                            placeholder="Ex.: contagem física, perda ou entrada manual"
+                        />
+                    </div>
+                )}
             </Modal>
 
             <ConfirmModal

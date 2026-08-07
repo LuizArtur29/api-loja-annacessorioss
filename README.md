@@ -32,6 +32,7 @@ npm ci
 npm run lint
 npm run test:coverage
 npm run build
+npm run test:e2e
 ```
 
 ## Contrato da API
@@ -108,6 +109,8 @@ O frontend e a API são publicados no mesmo domínio. O PostgreSQL não possui p
 - Vendas canceladas não entram no dashboard.
 - Toda alteração de saldo gera uma movimentação de estoque na mesma transação.
 - O histórico de estoque pode ser consultado em `GET /api/produtos/{id}/movimentacoes`.
+- Ajustes usam `POST /api/produtos/{id}/ajustes-estoque` e exigem motivo.
+- Cancelamentos usam `POST /api/vendas/{id}/cancelamento` e exigem motivo.
 
 ## Backup
 

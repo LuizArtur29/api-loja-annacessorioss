@@ -47,6 +47,12 @@ public class Venda extends BaseEntity {
 
     private LocalDateTime dataCancelamento;
 
+    @Column(length = 255)
+    private String motivoCancelamento;
+
+    @Column(length = 50)
+    private String canceladoPor;
+
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemVenda> itens = new ArrayList<>();
 

@@ -26,6 +26,16 @@ falha, preservando separação clara entre HTTP, aplicação, domínio e persist
 - Cadastros usados no histórico são inativados, não removidos.
 - Parcelamento preserva exatamente o valor total da despesa.
 - Toda alteração de saldo de produto gera uma movimentação na mesma transação.
+- Estoque não é alterado pelo CRUD de produto; ajustes são comandos explícitos com motivo.
+- Cancelamentos registram motivo e usuário responsável.
+
+## Gates de qualidade
+
+- O backend executa testes unitários e integração com PostgreSQL real.
+- O JaCoCo impede queda da cobertura de linhas abaixo de 70%.
+- O frontend executa ESLint sem warnings, testes de componentes e cobertura mínima.
+- Smoke tests Playwright protegem autenticação e cancelamento auditável no navegador.
+- Dependabot acompanha Maven, npm e GitHub Actions semanalmente.
 
 ## Compatibilidade com dados legados
 

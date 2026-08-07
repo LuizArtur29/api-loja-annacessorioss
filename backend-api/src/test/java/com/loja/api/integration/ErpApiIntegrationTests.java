@@ -110,13 +110,13 @@ class ErpApiIntegrationTests {
     @Test
     void deveExecutarMigrationEValidarSchemaRealDoPostgresql() {
         Integer migrations = jdbcTemplate.queryForObject(
-                "select count(*) from flyway_schema_history where version = '1' and success",
+                "select count(*) from flyway_schema_history where success",
                 Integer.class);
         String produtos = jdbcTemplate.queryForObject(
                 "select to_regclass('public.produtos')::text",
                 String.class);
 
-        assertThat(migrations).isEqualTo(1);
+        assertThat(migrations).isEqualTo(3);
         assertThat(produtos).isEqualTo("produtos");
     }
 
@@ -185,13 +185,21 @@ class ErpApiIntegrationTests {
         assertThat(produtoRepository.findById(produtoId).orElseThrow().getQuantidadeEstoque()).isEqualTo(1);
         assertThat(vendaRepository.findById(vendaId).orElseThrow().getStatus()).isEqualTo(StatusVenda.ATIVA);
 
-        mockMvc.perform(delete("/api/vendas/{id}", vendaId).header(HttpHeaders.AUTHORIZATION, bearer(token)))
-                .andExpect(status().isNoContent());
-        mockMvc.perform(delete("/api/vendas/{id}", vendaId).header(HttpHeaders.AUTHORIZATION, bearer(token)))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/vendas/{id}/cancelamento", vendaId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"motivo\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.motivo").exists());
+        cancelarVenda(token, vendaId, "Cliente desistiu");
+        cancelarVenda(token, vendaId, "Cliente desistiu");
 
         assertThat(produtoRepository.findById(produtoId).orElseThrow().getQuantidadeEstoque()).isEqualTo(3);
         assertThat(vendaRepository.findById(vendaId).orElseThrow().getStatus()).isEqualTo(StatusVenda.CANCELADA);
+        assertThat(vendaRepository.findById(vendaId).orElseThrow().getMotivoCancelamento())
+                .isEqualTo("Cliente desistiu");
+        assertThat(vendaRepository.findById(vendaId).orElseThrow().getCanceladoPor())
+                .isEqualTo(ADMIN_USERNAME);
         assertThat(movimentacaoEstoqueRepository.findAll())
                 .extracting(movimentacao -> movimentacao.getTipo().name())
                 .containsExactly("ESTOQUE_INICIAL", "VENDA", "CANCELAMENTO_VENDA");
@@ -229,13 +237,26 @@ class ErpApiIntegrationTests {
                                   "codigo":" T-1 ",
                                   "descricao":" ",
                                   "precoVenda":35.00,
-                                  "quantidadeEstoque":5,
                                   "categoriaId":%d
                                 }
                                 """.formatted(categoriaId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.codigo").value("T-1"))
                 .andExpect(jsonPath("$.descricao").doesNotExist());
+
+        mockMvc.perform(post("/api/produtos/{id}/ajustes-estoque", produtoId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"novoSaldo\":5,\"motivo\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.motivo").exists());
+
+        mockMvc.perform(post("/api/produtos/{id}/ajustes-estoque", produtoId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"novoSaldo\":5,\"motivo\":\"Contagem física\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.quantidadeEstoque").value(5));
 
         mockMvc.perform(get("/api/produtos/{id}/movimentacoes", produtoId)
                         .header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -244,7 +265,58 @@ class ErpApiIntegrationTests {
                 .andExpect(jsonPath("$.content[0].tipo").value("AJUSTE_MANUAL"))
                 .andExpect(jsonPath("$.content[0].quantidade").value(3))
                 .andExpect(jsonPath("$.content[0].saldoAnterior").value(2))
-                .andExpect(jsonPath("$.content[0].saldoPosterior").value(5));
+                .andExpect(jsonPath("$.content[0].saldoPosterior").value(5))
+                .andExpect(jsonPath("$.content[0].motivo").value("Contagem física"))
+                .andExpect(jsonPath("$.content[0].responsavel").value(ADMIN_USERNAME));
+    }
+
+    @Test
+    void deveManterAtualizacaoDeEstoqueDoClienteLegadoComAuditoria() throws Exception {
+        String token = autenticar();
+        long categoriaId = criarCategoria(token, "Presilhas");
+        long produtoId = criarProduto(token, categoriaId, "Presilha", "12.00", 2);
+
+        mockMvc.perform(put("/api/produtos/{id}", produtoId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nome":"Presilha",
+                                  "codigo":"LEGADO-1",
+                                  "precoVenda":12.00,
+                                  "quantidadeEstoque":5,
+                                  "categoriaId":%d
+                                }
+                                """.formatted(categoriaId)))
+                .andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getHeader("Deprecation")).isEqualTo("true"))
+                .andExpect(jsonPath("$.quantidadeEstoque").value(5));
+
+        assertThat(movimentacaoEstoqueRepository.findAll())
+                .anySatisfy(movimentacao -> {
+                    assertThat(movimentacao.getMotivo()).isEqualTo("Ajuste via cliente legado");
+                    assertThat(movimentacao.getResponsavel()).isEqualTo(ADMIN_USERNAME);
+                    assertThat(movimentacao.getQuantidade()).isEqualTo(3);
+                });
+    }
+
+    @Test
+    void deveManterCancelamentoDoClienteLegadoComAuditoria() throws Exception {
+        String token = autenticar();
+        long categoriaId = criarCategoria(token, "Chaveiros");
+        long produtoId = criarProduto(token, categoriaId, "Chaveiro", "15.00", 2);
+        long vendaId = id(registrarVenda(token, produtoId, 1, "0.00"));
+
+        mockMvc.perform(delete("/api/vendas/{id}", vendaId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isNoContent())
+                .andExpect(result -> assertThat(result.getResponse().getHeader("Deprecation")).isEqualTo("true"));
+
+        var venda = vendaRepository.findById(vendaId).orElseThrow();
+        assertThat(venda.getStatus()).isEqualTo(StatusVenda.CANCELADA);
+        assertThat(venda.getMotivoCancelamento()).isEqualTo("Cancelamento via cliente legado");
+        assertThat(venda.getCanceladoPor()).isEqualTo(ADMIN_USERNAME);
+        assertThat(produtoRepository.findById(produtoId).orElseThrow().getQuantidadeEstoque()).isEqualTo(2);
     }
 
     @Test
@@ -352,8 +424,7 @@ class ErpApiIntegrationTests {
         assertDecimal(antes, "$.totalSaidas", "40.00");
         assertDecimal(antes, "$.saldoLiquido", "60.00");
 
-        mockMvc.perform(delete("/api/vendas/{id}", vendaId).header(HttpHeaders.AUTHORIZATION, bearer(token)))
-                .andExpect(status().isNoContent());
+        cancelarVenda(token, vendaId, "Venda de teste");
 
         String depois = mockMvc.perform(get("/api/dashboard")
                         .param("ano", String.valueOf(periodo.getYear()))
@@ -464,6 +535,14 @@ class ErpApiIntegrationTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("ATIVA"))
                 .andReturn().getResponse().getContentAsString();
+    }
+
+    private void cancelarVenda(String token, long vendaId, String motivo) throws Exception {
+        mockMvc.perform(post("/api/vendas/{id}/cancelamento", vendaId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"motivo\":\"%s\"}".formatted(motivo)))
+                .andExpect(status().isNoContent());
     }
 
     private String vendaJson(long produtoId, int quantidade, String desconto) {

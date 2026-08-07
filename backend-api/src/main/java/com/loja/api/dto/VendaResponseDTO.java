@@ -17,5 +17,7 @@ public record VendaResponseDTO(
         FormaPagamento formaPagamento,
         StatusVenda status,
         LocalDateTime dataCancelamento,
+        String motivoCancelamento,
+        String canceladoPor,
         List<ItemVendaResponseDTO> itens) {
 }

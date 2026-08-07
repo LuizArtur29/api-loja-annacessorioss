@@ -13,5 +13,6 @@ public record MovimentacaoEstoqueResponseDTO(
         Integer saldoAnterior,
         Integer saldoPosterior,
         String motivo,
+        String responsavel,
         LocalDateTime dataMovimentacao) {
 }

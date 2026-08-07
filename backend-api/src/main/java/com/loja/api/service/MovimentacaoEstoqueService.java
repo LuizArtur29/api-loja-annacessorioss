@@ -6,6 +6,7 @@ import com.loja.api.model.Produto;
 import com.loja.api.model.Venda;
 import com.loja.api.model.enums.TipoMovimentacaoEstoque;
 import com.loja.api.repository.MovimentacaoEstoqueRepository;
+import com.loja.api.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MovimentacaoEstoqueService {
 
     private final MovimentacaoEstoqueRepository repository;
+    private final CurrentUserProvider currentUserProvider;
 
     @Transactional
     public void registrar(Produto produto, Venda venda, TipoMovimentacaoEstoque tipo,
@@ -33,6 +35,7 @@ public class MovimentacaoEstoqueService {
         movimentacao.setSaldoAnterior(saldoAnterior);
         movimentacao.setSaldoPosterior(saldoPosterior);
         movimentacao.setMotivo(motivo);
+        movimentacao.setResponsavel(currentUserProvider.username());
         repository.save(movimentacao);
     }
 
@@ -51,6 +54,7 @@ public class MovimentacaoEstoqueService {
                 movimentacao.getSaldoAnterior(),
                 movimentacao.getSaldoPosterior(),
                 movimentacao.getMotivo(),
+                movimentacao.getResponsavel(),
                 movimentacao.getDataMovimentacao());
     }
 }
