@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { LuX } from 'react-icons/lu';
@@ -7,28 +7,18 @@ import DataTable from '../../components/DataTable/DataTable';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import './Vendas.css';
 
-const formatCurrency = (value) =>
-    new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(value);
-
-const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-    });
-};
-
 function Vendas() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
+    const [search, setSearch] = useState('');
     const [detailOpen, setDetailOpen] = useState(false);
     const [selectedVenda, setSelectedVenda] = useState(null);
-    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, venda: null });
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, venda: null, motivo: '' });
 
     const { data: vendasPage, isLoading: loading } = useQuery({
-        queryKey: ['vendas', page],
+        queryKey: ['vendas', page, search],
         queryFn: async () => {
-            const res = await vendaService.getAll(page, 10);
+            const res = await vendaService.getAll(page, 10, search);
             return res.data;
         },
         staleTime: 60 * 1000,
@@ -46,15 +36,15 @@ function Vendas() {
     useEffect(() => {
         if (vendasPage && !vendasPage.last) {
             queryClient.prefetchQuery({
-                queryKey: ['vendas', page + 1],
+                queryKey: ['vendas', page + 1, search],
                 queryFn: async () => {
-                    const res = await vendaService.getAll(page + 1, 2);
+                    const res = await vendaService.getAll(page + 1, 10, search);
                     return res.data;
             },
             staleTime: 60 * 1000,
             });
         }
-    }, [vendasPage, page, queryClient]);
+    }, [vendasPage, page, search, queryClient]);
 
     const openDetail = async (venda) => {
         try {
@@ -67,20 +57,26 @@ function Vendas() {
     };
 
     const handleDeleteClick = (venda) => {
-        setConfirmDelete({ isOpen: true, venda });
+        if (venda.status === 'CANCELADA') {
+            toast.error('Esta venda já está cancelada');
+            return;
+        }
+        setConfirmDelete({ isOpen: true, venda, motivo: '' });
     };
 
     const executeDelete = async () => {
         try {
-            await vendaService.delete(confirmDelete.venda.id);
-            toast.success('Venda excluída com sucesso');
+            await vendaService.cancel(confirmDelete.venda.id, confirmDelete.motivo.trim());
+            toast.success('Venda cancelada e estoque devolvido');
             queryClient.invalidateQueries({ queryKey: ['vendas'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-all'] });
             queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir venda');
         } finally {
-            setConfirmDelete({ isOpen: false, venda: null });
+            setConfirmDelete({ isOpen: false, venda: null, motivo: '' });
         }
     };
 
@@ -100,6 +96,12 @@ function Vendas() {
 
     const columns = [
         { key: 'id', header: 'ID' },
+        {
+            key: 'status', header: 'Status',
+            render: (row) => row.status === 'CANCELADA'
+                ? <span style={{ color: 'var(--danger-color)', fontWeight: 600 }}>Cancelada</span>
+                : <span style={{ color: 'var(--success-color)', fontWeight: 600 }}>Ativa</span>,
+        },
         {
             header: 'Data',
             key: 'dataVenda',
@@ -144,15 +146,21 @@ function Vendas() {
                 onDelete={handleDeleteClick}
                 pagination={pagination}
                 onPageChange={setPage}
+                onSearchChange={(value) => { setSearch(value); setPage(0); }}
             />
 
             {/* Confirm Delete Modal */}
             <ConfirmModal
                 isOpen={confirmDelete.isOpen}
-                title="Excluir Venda"
-                message={`Tem certeza que deseja excluir a venda #${confirmDelete.venda?.id}? O estoque dos produtos será devolvido.`}
+                title="Cancelar Venda"
+                message={`Tem certeza que deseja cancelar a venda #${confirmDelete.venda?.id}? O histórico será preservado e o estoque será devolvido.`}
+                confirmLabel="Confirmar cancelamento"
+                promptLabel="Motivo do cancelamento"
+                promptValue={confirmDelete.motivo}
+                onPromptChange={(motivo) => setConfirmDelete((current) => ({ ...current, motivo }))}
+                promptRequired
                 onConfirm={executeDelete}
-                onClose={() => setConfirmDelete({ isOpen: false, venda: null })}
+                onClose={() => setConfirmDelete({ isOpen: false, venda: null, motivo: '' })}
             />
 
             {/* Detail modal */}
@@ -176,6 +184,13 @@ function Vendas() {
                                         <label>Cliente</label>
                                         <p>{selectedVenda.clienteNome || 'Consumidor'}</p>
                                     </div>
+                                    {selectedVenda.status === 'CANCELADA' && (
+                                        <div className="detail-field">
+                                            <label>Cancelamento</label>
+                                            <p>{selectedVenda.motivoCancelamento}</p>
+                                            <small>Por {selectedVenda.canceladoPor}</small>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="detail-items-title">Itens</div>

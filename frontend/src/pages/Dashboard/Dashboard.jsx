@@ -1,12 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
     Cell, PieChart, Pie, Legend, CartesianGrid,
     BarChart, Bar
 } from 'recharts';
-import vendaService from '../../api/vendaService';
-import despesaService from '../../api/despesaService';
+import dashboardService from '../../api/dashboardService';
 import './Dashboard.css';
 
 /* ── Custom Tooltip ── */
@@ -21,7 +20,7 @@ const CustomTooltip = ({ active, payload, label, formatCurrency }) => {
 };
 
 /* ── Custom Pie Label ── */
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent }) => {
     if (percent < 0.05) return null;
     const RADIAN = Math.PI / 180;
     const radius = outerRadius + 22;
@@ -58,54 +57,18 @@ function Dashboard() {
     const anos = [];
     for (let y = now.getFullYear(); y >= now.getFullYear() - 5; y--) anos.push(y);
 
-    const { data: vendas = [], isLoading: loadingVendas } = useQuery({
-        queryKey: ['vendas'],
+    const { data: resumo, isLoading: loadingResumo, isError } = useQuery({
+        queryKey: ['dashboard', anoFiltro, mesFiltro],
         queryFn: async () => {
-            const res = await vendaService.getAllNoPagination();
+            const res = await dashboardService.getResumo(anoFiltro, mesFiltro);
             return res.data;
         }
     });
 
-    const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
-        queryKey: ['despesas'],
-        queryFn: async () => {
-            const res = await despesaService.getAllNoPagination();
-            return res.data;
-        }
-    });
-
-    /* ── Filtragem por mês/ano ── */
-    const vendasFiltradas = useMemo(() => {
-        return vendas.filter(v => {
-            if (!v.dataVenda) return false;
-            let ano, mes;
-            if (Array.isArray(v.dataVenda)) {
-                // Jackson LocalDateTime sem config: [2026,2,17,20,30,0]
-                [ano, mes] = v.dataVenda;
-            } else {
-                const str = String(v.dataVenda);
-                [ano, mes] = str.split(/[-T]/).map(Number);
-            }
-            return mes === mesFiltro && ano === anoFiltro;
-        });
-    }, [vendas, mesFiltro, anoFiltro]);
-
-    const despesasFiltradas = useMemo(() => {
-        return despesas.filter(d => {
-            if (!d.dataPagamento) return false;
-            const [ano, mes] = d.dataPagamento.split('-').map(Number);
-            return mes === mesFiltro && ano === anoFiltro;
-        });
-    }, [despesas, mesFiltro, anoFiltro]);
-
-    /* ── Cálculos (Saídas = apenas PAGAS) ── */
-    const totalEntradas = vendasFiltradas.reduce((acc, v) => acc + parseFloat(v.valorTotal || 0), 0);
-    const despesasPagas = despesasFiltradas.filter(d => d.status === 'PAGO');
-    const totalSaidas = despesasPagas.reduce((acc, d) => acc + parseFloat(d.valor || 0), 0);
-    const totalPendentes = despesasFiltradas
-        .filter(d => d.status === 'PENDENTE' || d.status === 'ATRASADO')
-        .reduce((acc, d) => acc + parseFloat(d.valor || 0), 0);
-    const saldoLiquido = totalEntradas - totalSaidas;
+    const totalEntradas = parseFloat(resumo?.totalEntradas || 0);
+    const totalSaidas = parseFloat(resumo?.totalSaidas || 0);
+    const totalPendentes = parseFloat(resumo?.totalPendentes || 0);
+    const saldoLiquido = parseFloat(resumo?.saldoLiquido || 0);
 
     /* ── Dados do Gráfico de Área ── */
     const dataGraficoArea = [
@@ -123,11 +86,7 @@ function Dashboard() {
         OUTROS: 'Outros'
     };
 
-    const despesasAgrupadas = despesasPagas.reduce((acc, desp) => {
-        const cat = desp.categoria || 'OUTROS';
-        acc[cat] = (acc[cat] || 0) + parseFloat(desp.valor || 0);
-        return acc;
-    }, {});
+    const despesasAgrupadas = resumo?.despesasPorCategoria || {};
 
     const dataGraficoPizza = Object.keys(despesasAgrupadas).map(key => ({
         name: categoriasLabels[key] || key,
@@ -140,11 +99,7 @@ function Dashboard() {
         TRANSFERENCIA: 'Transferência', BOLETO: 'Boleto'
     };
 
-    const vendasPorPgto = vendasFiltradas.reduce((acc, v) => {
-        const fp = v.formaPagamento || 'NAO_INFORMADO';
-        acc[fp] = (acc[fp] || 0) + 1;
-        return acc;
-    }, {});
+    const vendasPorPgto = resumo?.vendasPorFormaPagamento || {};
 
     const dataGraficoPgto = Object.keys(vendasPorPgto)
         .filter(k => k !== 'NAO_INFORMADO')
@@ -167,8 +122,17 @@ function Dashboard() {
 
     const mesLabel = MESES.find(m => m.value === mesFiltro)?.label || '';
 
-    if (loadingVendas || loadingDespesas) {
+    if (loadingResumo) {
         return <div className="page-header"><h2>Carregando painel financeiro…</h2></div>;
+    }
+
+    if (isError) {
+        return (
+            <div className="page-header">
+                <h2>Não foi possível carregar o painel</h2>
+                <p>Verifique a conexão e tente novamente.</p>
+            </div>
+        );
     }
 
     return (

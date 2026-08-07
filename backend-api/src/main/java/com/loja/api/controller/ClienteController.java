@@ -2,9 +2,9 @@ package com.loja.api.controller;
 
 import com.loja.api.dto.ClienteRequestDTO;
 import com.loja.api.dto.ClienteResponseDTO;
+import com.loja.api.dto.PageResponse;
 import com.loja.api.service.ClienteService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -24,9 +24,10 @@ public class ClienteController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ClienteResponseDTO>> listarTodos(
+    public ResponseEntity<PageResponse<ClienteResponseDTO>> listarTodos(
+            @RequestParam(defaultValue = "") String q,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.listarTodos(pageable));
+        return ResponseEntity.ok(PageResponse.from(service.listarTodos(q, pageable)));
     }
 
     @GetMapping("/all")

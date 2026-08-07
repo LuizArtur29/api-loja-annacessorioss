@@ -9,9 +9,12 @@ import com.loja.api.model.Cliente;
 import com.loja.api.model.ItemVenda;
 import com.loja.api.model.Produto;
 import com.loja.api.model.Venda;
+import com.loja.api.model.enums.StatusVenda;
+import com.loja.api.model.enums.TipoMovimentacaoEstoque;
 import com.loja.api.repository.ClienteRepository;
 import com.loja.api.repository.ProdutoRepository;
 import com.loja.api.repository.VendaRepository;
+import com.loja.api.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -28,23 +33,18 @@ public class VendaService {
         private final VendaRepository vendaRepository;
         private final ProdutoRepository produtoRepository;
         private final ClienteRepository clienteRepository;
+        private final MovimentacaoEstoqueService movimentacaoEstoqueService;
+        private final CurrentUserProvider currentUserProvider;
 
         @Transactional(readOnly = true)
-        public Page<VendaResumoDTO> listarTodas(Pageable pageable) {
-                return vendaRepository.findAll(pageable)
+        public Page<VendaResumoDTO> listarTodas(String q, Pageable pageable) {
+                return vendaRepository.search(q == null ? "" : q.trim(), pageable)
                                 .map(this::toResumoDTO);
         }
 
         @Transactional(readOnly = true)
-        public List<VendaResumoDTO> listarTodasSemPaginacao() {
-                return vendaRepository.findAll().stream()
-                                .map(this::toResumoDTO)
-                                .toList();
-        }
-
-        @Transactional(readOnly = true)
         public VendaResponseDTO buscarPorId(Long id) {
-                Venda venda = vendaRepository.findById(id)
+                Venda venda = vendaRepository.findDetailedById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada com id: " + id));
                 return toResponseDTO(venda);
         }
@@ -54,7 +54,7 @@ public class VendaService {
                 Venda venda = new Venda();
 
                 if (dto.clienteId() != null) {
-                        Cliente cliente = clienteRepository.findById(dto.clienteId())
+                        Cliente cliente = clienteRepository.findByIdAndAtivoTrue(dto.clienteId())
                                         .orElseThrow(() -> new ResourceNotFoundException(
                                                         "Cliente não encontrado com id: " + dto.clienteId()));
                         venda.setCliente(cliente);
@@ -64,8 +64,13 @@ public class VendaService {
 
                 BigDecimal valorTotal = BigDecimal.ZERO;
 
+                var produtosInformados = new HashSet<Long>();
+                var alteracoesEstoque = new java.util.ArrayList<AlteracaoEstoque>();
                 for (var itemDto : dto.itens()) {
-                        Produto produto = produtoRepository.findById(itemDto.produtoId())
+                        if (!produtosInformados.add(itemDto.produtoId())) {
+                                throw new IllegalArgumentException("Cada produto deve aparecer apenas uma vez na venda.");
+                        }
+                        Produto produto = produtoRepository.findActiveByIdForUpdate(itemDto.produtoId())
                                         .orElseThrow(() -> new ResourceNotFoundException(
                                                         "Produto não encontrado com id: " + itemDto.produtoId()));
 
@@ -86,8 +91,11 @@ public class VendaService {
                         valorTotal = valorTotal.add(
                                         produto.getPrecoVenda().multiply(BigDecimal.valueOf(itemDto.quantidade())));
 
-                        produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - itemDto.quantidade());
+                        int saldoAnterior = produto.getQuantidadeEstoque();
+                        produto.setQuantidadeEstoque(saldoAnterior - itemDto.quantidade());
                         produtoRepository.save(produto);
+                        alteracoesEstoque.add(new AlteracaoEstoque(produto, -itemDto.quantidade(),
+                                        saldoAnterior, produto.getQuantidadeEstoque()));
                 }
 
                 // Aplicar desconto
@@ -98,24 +106,43 @@ public class VendaService {
                 venda.setDesconto(desconto);
                 venda.setValorTotal(valorTotal.subtract(desconto));
 
+                venda.setStatus(StatusVenda.ATIVA);
                 venda = vendaRepository.save(venda);
+
+                for (AlteracaoEstoque alteracao : alteracoesEstoque) {
+                        movimentacaoEstoqueService.registrar(alteracao.produto(), venda, TipoMovimentacaoEstoque.VENDA,
+                                        alteracao.quantidade(), alteracao.saldoAnterior(), alteracao.saldoPosterior(),
+                                        "Venda #" + venda.getId());
+                }
 
                 return toResponseDTO(venda);
         }
 
         @Transactional
-        public void deletar(Long id) {
-                Venda venda = vendaRepository.findById(id)
+        public void cancelar(Long id, String motivo) {
+                Venda venda = vendaRepository.findByIdForUpdate(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada com id: " + id));
 
-                // Devolver estoque dos produtos
-                for (ItemVenda item : venda.getItens()) {
-                        Produto produto = item.getProduto();
-                        produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() + item.getQuantidade());
-                        produtoRepository.save(produto);
+                if (venda.getStatus() == StatusVenda.CANCELADA) {
+                        return;
                 }
 
-                vendaRepository.delete(venda);
+                for (ItemVenda item : venda.getItens()) {
+                        Produto produto = produtoRepository.findByIdForUpdate(item.getProduto().getId())
+                                        .orElseThrow(() -> new IllegalStateException("Produto histórico da venda não encontrado"));
+                        int saldoAnterior = produto.getQuantidadeEstoque();
+                        produto.setQuantidadeEstoque(saldoAnterior + item.getQuantidade());
+                        produtoRepository.save(produto);
+                        movimentacaoEstoqueService.registrar(produto, venda,
+                                        TipoMovimentacaoEstoque.CANCELAMENTO_VENDA, item.getQuantidade(),
+                                        saldoAnterior, produto.getQuantidadeEstoque(), motivo.trim());
+                }
+
+                venda.setStatus(StatusVenda.CANCELADA);
+                venda.setDataCancelamento(LocalDateTime.now());
+                venda.setMotivoCancelamento(motivo.trim());
+                venda.setCanceladoPor(currentUserProvider.username());
+                vendaRepository.save(venda);
         }
 
         private VendaResponseDTO toResponseDTO(Venda venda) {
@@ -138,6 +165,10 @@ public class VendaService {
                                 venda.getCliente() != null ? venda.getCliente().getId() : null,
                                 venda.getCliente() != null ? venda.getCliente().getNome() : "Consumidor Final",
                                 venda.getFormaPagamento(),
+                                venda.getStatus(),
+                                venda.getDataCancelamento(),
+                                venda.getMotivoCancelamento(),
+                                venda.getCanceladoPor(),
                                 itens);
         }
 
@@ -149,7 +180,14 @@ public class VendaService {
                         venda.getDesconto(),
                         venda.getCliente() != null ? venda.getCliente().getId() : null,
                         venda.getCliente() != null ? venda.getCliente().getNome() : "Consumidor Final",
-                        venda.getFormaPagamento()
+                        venda.getFormaPagamento(),
+                        venda.getStatus(),
+                        venda.getDataCancelamento(),
+                        venda.getMotivoCancelamento(),
+                        venda.getCanceladoPor()
                 );
+        }
+
+        private record AlteracaoEstoque(Produto produto, int quantidade, int saldoAnterior, int saldoPosterior) {
         }
 }

@@ -3,19 +3,21 @@ package com.loja.api.controller;
 import com.loja.api.dto.VendaRequestDTO;
 import com.loja.api.dto.VendaResponseDTO;
 import com.loja.api.dto.VendaResumoDTO;
+import com.loja.api.dto.PageResponse;
+import com.loja.api.dto.CancelamentoVendaRequestDTO;
 import com.loja.api.service.VendaService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/vendas")
+@Slf4j
 public class VendaController {
 
     private final VendaService service;
@@ -25,14 +27,10 @@ public class VendaController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<VendaResumoDTO>> listarTodas(
+    public ResponseEntity<PageResponse<VendaResumoDTO>> listarTodas(
+            @RequestParam(defaultValue = "") String q,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.listarTodas(pageable));
-    }
-
-    @GetMapping("/all")
-    public ResponseEntity<List<VendaResumoDTO>> listarTodasSemPaginacao() {
-        return ResponseEntity.ok(service.listarTodasSemPaginacao());
+        return ResponseEntity.ok(PageResponse.from(service.listarTodas(q, pageable)));
     }
 
     @GetMapping("/{id}")
@@ -45,9 +43,25 @@ public class VendaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.registrar(dto));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        service.deletar(id);
+    @PostMapping("/{id}/cancelamento")
+    public ResponseEntity<Void> cancelar(
+            @PathVariable Long id, @Valid @RequestBody CancelamentoVendaRequestDTO dto) {
+        service.cancelar(id, dto.motivo());
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Compatibilidade temporária para clientes publicados antes do contrato de
+     * cancelamento auditável. Remover somente após confirmar que não há clientes
+     * antigos em uso.
+     */
+    @Deprecated
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancelarContratoLegado(@PathVariable Long id) {
+        log.warn("Cancelamento pelo contrato legado na venda {}. Atualize o frontend antes de remover a compatibilidade.", id);
+        service.cancelar(id, "Cancelamento via cliente legado");
+        return ResponseEntity.noContent()
+                .header("Deprecation", "true")
+                .build();
     }
 }

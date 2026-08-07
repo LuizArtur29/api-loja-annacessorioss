@@ -3,11 +3,12 @@ import api from './api';
 const BASE = '/produtos';
 
 const produtoService = {
-    getAll: (page = 0, size = 10) => api.get(BASE, { params: { page, size } }),
+    getAll: (page = 0, size = 10, q = '') => api.get(BASE, { params: { page, size, q } }),
     getAllNoPagination: () => api.get(`${BASE}/all`),
     getById: (id) => api.get(`${BASE}/${id}`),
     create: (data) => api.post(BASE, data),
     update: (id, data) => api.put(`${BASE}/${id}`, data),
+    adjustStock: (id, data) => api.post(`${BASE}/${id}/ajustes-estoque`, data),
     delete: (id) => api.delete(`${BASE}/${id}`),
     getValorTotal: () => api.get(`${BASE}/valor-total`),
 };

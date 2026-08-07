@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LuSearch, LuPlus, LuPen, LuTrash2, LuInbox, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import './DataTable.css';
 
@@ -28,10 +28,22 @@ function DataTable({
                        // Pagination props
                        pagination,
                        onPageChange,
+                       onSearchChange,
                    }) {
     const [search, setSearch] = useState('');
+    const onSearchChangeRef = useRef(onSearchChange);
 
-    const filtered = data.filter((row) => {
+    useEffect(() => {
+        onSearchChangeRef.current = onSearchChange;
+    }, [onSearchChange]);
+
+    useEffect(() => {
+        if (!onSearchChangeRef.current) return undefined;
+        const timer = window.setTimeout(() => onSearchChangeRef.current(search), 300);
+        return () => window.clearTimeout(timer);
+    }, [search]);
+
+    const filtered = onSearchChange ? data : data.filter((row) => {
         if (!search) return true;
         const term = search.toLowerCase();
         return columns.some((col) => {

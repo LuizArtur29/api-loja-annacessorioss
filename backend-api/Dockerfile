@@ -1,5 +1,5 @@
 # Estágio 1: Compilação (Build) com Java 21
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+FROM maven:3.9.12-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copia o pom.xml e baixa as dependências
@@ -14,9 +14,15 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
+RUN groupadd --system app && useradd --system --gid app --home-dir /app app
+
 # Copia o JAR do estágio anterior
 COPY --from=build /app/target/*.jar app.jar
 
+RUN chown app:app /app/app.jar
+
+USER app
+
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60", "-XX:+ExitOnOutOfMemoryError", "-Duser.timezone=America/Recife", "-jar", "app.jar"]

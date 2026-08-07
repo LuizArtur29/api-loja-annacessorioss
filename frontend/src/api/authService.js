@@ -12,14 +12,6 @@ const authService = {
         return res.data;
     },
 
-    register: async (username, senha) => {
-        const res = await api.post('/auth/register', { username, senha });
-        const { token, username: user, role } = res.data;
-        localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify({ username: user, role }));
-        return res.data;
-    },
-
     logout: () => {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);

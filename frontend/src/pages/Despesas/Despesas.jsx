@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { NumericFormat } from 'react-number-format';
@@ -12,11 +12,16 @@ import customSelectStyles from '../../utils/selectStyles';
 function Despesas() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
+    const [search, setSearch] = useState('');
+
+    const now = new Date();
+    const [mesFiltro, setMesFiltro] = useState(now.getMonth() + 1);
+    const [anoFiltro, setAnoFiltro] = useState(now.getFullYear());
 
     const { data: despesasPage, isLoading: loading } = useQuery({
-        queryKey: ['despesas', page],
+        queryKey: ['despesas', page, anoFiltro, mesFiltro, search],
         queryFn: async () => {
-            const res = await despesaService.getAll(page, 10);
+            const res = await despesaService.getAll(page, 10, anoFiltro, mesFiltro, search);
             return res.data;
         }
     });
@@ -34,11 +39,6 @@ function Despesas() {
     const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, despesa: null });
-
-    /* ── Filtros de Mês/Ano ── */
-    const now = new Date();
-    const [mesFiltro, setMesFiltro] = useState(now.getMonth() + 1);
-    const [anoFiltro, setAnoFiltro] = useState(now.getFullYear());
 
     const [form, setForm] = useState({
         descricao: '',
@@ -77,21 +77,7 @@ function Despesas() {
 
 
 
-    /* ── Filtrar despesas pelo mês/ano selecionado ── */
-    const despesasFiltradas = useMemo(() => {
-        return despesas.filter(d => {
-            if (!d.dataPagamento) return false;
-            const [ano, mes] = d.dataPagamento.split('-').map(Number);
-            return mes === mesFiltro && ano === anoFiltro;
-        });
-    }, [despesas, mesFiltro, anoFiltro]);
-
     /* ── Handlers ── */
-    const resetForm = () => setForm({
-        descricao: '', valor: '', dataPagamento: '', categoria: '',
-        status: 'PENDENTE', formaPagamento: '', observacoes: '', parcelas: 1
-    });
-
     const openNew = () => {
         setEditing(null);
         setForm({
@@ -144,6 +130,7 @@ function Despesas() {
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['despesas'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar despesa');
         } finally {
@@ -160,7 +147,8 @@ function Despesas() {
             await despesaService.delete(confirmDelete.despesa.id);
             toast.success('Despesa excluída');
             queryClient.invalidateQueries({ queryKey: ['despesas'] });
-        } catch (err) {
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        } catch {
             toast.error('Erro ao excluir');
         } finally {
             setConfirmDelete({ isOpen: false, despesa: null });
@@ -288,7 +276,7 @@ function Despesas() {
                 </span>
                 <select
                     value={mesFiltro}
-                    onChange={(e) => setMesFiltro(Number(e.target.value))}
+                    onChange={(e) => { setMesFiltro(Number(e.target.value)); setPage(0); }}
                     style={{
                         padding: '6px 12px', borderRadius: '8px',
                         border: '1px solid var(--border-color)',
@@ -303,7 +291,7 @@ function Despesas() {
                 </select>
                 <select
                     value={anoFiltro}
-                    onChange={(e) => setAnoFiltro(Number(e.target.value))}
+                    onChange={(e) => { setAnoFiltro(Number(e.target.value)); setPage(0); }}
                     style={{
                         padding: '6px 12px', borderRadius: '8px',
                         border: '1px solid var(--border-color)',
@@ -320,7 +308,7 @@ function Despesas() {
 
             <DataTable
                 columns={columns}
-                data={despesasFiltradas}
+                data={despesas}
                 loading={loading}
                 searchPlaceholder="Procurar despesa..."
                 onAdd={openNew}
@@ -329,6 +317,7 @@ function Despesas() {
                 onDelete={handleDelete}
                 pagination={pagination}
                 onPageChange={setPage}
+                onSearchChange={(value) => { setSearch(value); setPage(0); }}
             />
 
             <Modal

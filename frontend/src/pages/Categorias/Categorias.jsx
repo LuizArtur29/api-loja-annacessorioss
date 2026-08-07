@@ -9,11 +9,12 @@ import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 function Categorias() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
+    const [search, setSearch] = useState('');
 
     const { data: categoriasPage, isLoading: loading } = useQuery({
-        queryKey: ['categorias', page],
+        queryKey: ['categorias', page, search],
         queryFn: async () => {
-            const res = await categoriaService.getAll(page, 10);
+            const res = await categoriaService.getAll(page, 10, search);
             return res.data;
         }
     });
@@ -61,6 +62,7 @@ function Categorias() {
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['categorias'] });
+            queryClient.invalidateQueries({ queryKey: ['categorias-all'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
         } finally {
@@ -77,6 +79,7 @@ function Categorias() {
             await categoriaService.delete(confirmDelete.categoria.id);
             toast.success('Categoria excluída');
             queryClient.invalidateQueries({ queryKey: ['categorias'] });
+            queryClient.invalidateQueries({ queryKey: ['categorias-all'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
         } finally {
@@ -107,6 +110,7 @@ function Categorias() {
                 onDelete={handleDeleteClick}
                 pagination={pagination}
                 onPageChange={setPage}
+                onSearchChange={(value) => { setSearch(value); setPage(0); }}
             />
 
             <Modal

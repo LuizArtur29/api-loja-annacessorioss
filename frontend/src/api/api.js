@@ -18,8 +18,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        const isAuthRoute = window.location.pathname.includes('/login') ||
-            window.location.pathname.includes('/register');
+        const isAuthRoute = window.location.pathname.includes('/login');
 
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             if (!isAuthRoute) {

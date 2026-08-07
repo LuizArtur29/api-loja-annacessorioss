@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
@@ -13,12 +13,13 @@ import customSelectStyles from '../../utils/selectStyles';
 function Produtos() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
+    const [search, setSearch] = useState('');
 
     // Busca paginada para a tabela
     const { data: produtosPage, isLoading: loadingProdutos } = useQuery({
-        queryKey: ['produtos', page],
+        queryKey: ['produtos', page, search],
         queryFn: async () => {
-            const res = await produtoService.getAll(page, 10);
+            const res = await produtoService.getAll(page, 10, search);
             return res.data;
         },
         staleTime: 60 * 1000,
@@ -54,15 +55,15 @@ function Produtos() {
     useEffect(() => {
         if (produtosPage && !produtosPage.last) {
             queryClient.prefetchQuery({
-                queryKey: ['produtos', page + 1],
+                queryKey: ['produtos', page + 1, search],
                 queryFn: async () => {
-                    const res = await produtoService.getAll(page + 1, 10);
+                    const res = await produtoService.getAll(page + 1, 10, search);
                     return res.data;
                 },
                 staleTime: 60 * 1000,
             });
         }
-    }, [produtosPage, page, queryClient]);
+    }, [produtosPage, page, search, queryClient]);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -75,6 +76,7 @@ function Produtos() {
         descricao: '',
         precoVenda: '',
         quantidadeEstoque: '',
+        motivoAjuste: '',
         categoriaId: '',
     });
 
@@ -84,7 +86,7 @@ function Produtos() {
     }));
 
     const resetForm = () =>
-        setForm({ nome: '', codigo: '', descricao: '', precoVenda: '', quantidadeEstoque: '', categoriaId: '' });
+        setForm({ nome: '', codigo: '', descricao: '', precoVenda: '', quantidadeEstoque: '', motivoAjuste: '', categoriaId: '' });
 
     const openNew = () => {
         setEditing(null);
@@ -100,6 +102,7 @@ function Produtos() {
             descricao: prod.descricao || '',
             precoVenda: prod.precoVenda,
             quantidadeEstoque: prod.quantidadeEstoque,
+            motivoAjuste: '',
             categoriaId: prod.categoriaId,
         });
         setModalOpen(true);
@@ -114,23 +117,37 @@ function Produtos() {
             toast.error('Preencha os campos obrigatórios');
             return;
         }
+        const novoSaldo = parseInt(form.quantidadeEstoque) || 0;
+        const estoqueAlterado = editing && novoSaldo !== editing.quantidadeEstoque;
+        if (estoqueAlterado && !form.motivoAjuste.trim()) {
+            toast.error('Informe o motivo do ajuste de estoque');
+            return;
+        }
         setSaving(true);
         const payload = {
-            ...form,
+            nome: form.nome,
+            codigo: form.codigo,
+            descricao: form.descricao,
             precoVenda: parseFloat(form.precoVenda),
-            quantidadeEstoque: parseInt(form.quantidadeEstoque) || 0,
             categoriaId: parseInt(form.categoriaId),
         };
         try {
             if (editing) {
                 await produtoService.update(editing.id, payload);
+                if (estoqueAlterado) {
+                    await produtoService.adjustStock(editing.id, {
+                        novoSaldo,
+                        motivo: form.motivoAjuste.trim(),
+                    });
+                }
                 toast.success('Produto atualizado');
             } else {
-                await produtoService.create(payload);
+                await produtoService.create({ ...payload, quantidadeEstoque: novoSaldo });
                 toast.success('Produto criado');
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-all'] });
             queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
@@ -148,6 +165,7 @@ function Produtos() {
             await produtoService.delete(confirmDelete.produto.id);
             toast.success('Produto excluído');
             queryClient.invalidateQueries({ queryKey: ['produtos'] });
+            queryClient.invalidateQueries({ queryKey: ['produtos-all'] });
             queryClient.invalidateQueries({ queryKey: ['produtos-valor-total'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
@@ -244,6 +262,7 @@ function Produtos() {
                 onDelete={handleDeleteClick}
                 pagination={pagination}
                 onPageChange={setPage}
+                onSearchChange={(value) => { setSearch(value); setPage(0); }}
             />
 
             <Modal
@@ -323,6 +342,19 @@ function Produtos() {
                         />
                     </div>
                 </div>
+                {editing && parseInt(form.quantidadeEstoque || '0') !== editing.quantidadeEstoque && (
+                    <div className="form-group">
+                        <label>Motivo do ajuste de estoque *</label>
+                        <input
+                            type="text"
+                            name="motivoAjuste"
+                            value={form.motivoAjuste}
+                            onChange={handleChange}
+                            maxLength={255}
+                            placeholder="Ex.: contagem física, perda ou entrada manual"
+                        />
+                    </div>
+                )}
             </Modal>
 
             <ConfirmModal

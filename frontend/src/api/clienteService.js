@@ -3,7 +3,7 @@ import api from './api';
 const BASE = '/clientes';
 
 const clienteService = {
-    getAll: (page = 0, size = 10) => api.get(BASE, { params: { page, size } }),
+    getAll: (page = 0, size = 10, q = '') => api.get(BASE, { params: { page, size, q } }),
     getAllNoPagination: () => api.get(`${BASE}/all`),
     getById: (id) => api.get(`${BASE}/${id}`),
     create: (data) => api.post(BASE, data),
