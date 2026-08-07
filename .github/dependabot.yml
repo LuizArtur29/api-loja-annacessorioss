@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      jjwt-runtime:
+        patterns:
+          - "io.jsonwebtoken:*"
   - package-ecosystem: npm
     directory: /frontend
     schedule:
@@ -15,6 +19,10 @@ updates:
         patterns:
           - react
           - react-dom
+      vite-toolchain:
+        patterns:
+          - vite
+          - "@vitejs/plugin-react"
   - package-ecosystem: github-actions
     directory: /
     schedule:
