@@ -8,6 +8,7 @@ import com.loja.api.model.enums.StatusPagamento;
 import com.loja.api.repository.DespesaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.LocalDate;
+import java.util.Locale;
 import com.loja.api.model.enums.FormaPagamento;
 
 @Service
@@ -36,8 +38,27 @@ public class DespesaService {
     @Transactional(readOnly = true)
     public Page<DespesaResponseDTO> getAll(LocalDate inicio, LocalDate fim, String q,
             StatusPagamento status, FormaPagamento formaPagamento, Pageable pageable) {
-        return repository.searchActive(
-                        inicio, fim, q == null ? "" : q.trim(), status, formaPagamento, pageable)
+        String termo = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
+        Specification<Despesa> filtros = (root, query, criteriaBuilder) -> {
+            var predicates = new ArrayList<jakarta.persistence.criteria.Predicate>();
+            predicates.add(criteriaBuilder.isTrue(root.get("ativo")));
+            predicates.add(criteriaBuilder.between(root.get("dataPagamento"), inicio, fim));
+
+            if (!termo.isBlank()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("descricao")), "%" + termo + "%"));
+            }
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+            if (formaPagamento != null) {
+                predicates.add(criteriaBuilder.equal(root.get("formaPagamento"), formaPagamento));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+
+        return repository.findAll(filtros, pageable)
                 .map(DespesaResponseDTO::new);
     }
 

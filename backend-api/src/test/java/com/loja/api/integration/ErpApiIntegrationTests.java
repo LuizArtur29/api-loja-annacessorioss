@@ -453,6 +453,71 @@ class ErpApiIntegrationTests {
     }
 
     @Test
+    void deveListarVendasEDespesasComESemFiltrosOpcionais() throws Exception {
+        String token = autenticar();
+        YearMonth periodo = YearMonth.now();
+        long categoriaId = criarCategoria(token, "Listagem");
+        long produtoId = criarProduto(token, categoriaId, "Produto listado", "75.00", 2);
+        registrarVenda(token, produtoId, 1, "0.00");
+
+        mockMvc.perform(post("/api/despesas")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "descricao": "Despesa listada",
+                                  "valor": 25.00,
+                                  "dataPagamento": "%s",
+                                  "categoria": "OUTROS",
+                                  "status": "PAGO",
+                                  "formaPagamento": "PIX",
+                                  "parcelas": 1
+                                }
+                                """.formatted(periodo.atDay(8))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/vendas")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("q", "")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].valorTotal").value(75.00));
+
+        mockMvc.perform(get("/api/despesas")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("q", "")
+                        .param("ano", String.valueOf(periodo.getYear()))
+                        .param("mes", String.valueOf(periodo.getMonthValue()))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].descricao").value("Despesa listada"));
+
+        mockMvc.perform(get("/api/vendas")
+                        .param("q", "Consumidor Final")
+                        .param("status", "ATIVA")
+                        .param("formaPagamento", "PIX")
+                        .param("inicio", periodo.atDay(1).toString())
+                        .param("fim", periodo.atEndOfMonth().toString())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        mockMvc.perform(get("/api/despesas")
+                        .param("ano", String.valueOf(periodo.getYear()))
+                        .param("mes", String.valueOf(periodo.getMonthValue()))
+                        .param("q", "despesa LISTADA")
+                        .param("status", "PAGO")
+                        .param("formaPagamento", "PIX")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
     void dashboardDeveDesconsiderarVendaCancelada() throws Exception {
         String token = autenticar();
         YearMonth periodo = YearMonth.now();

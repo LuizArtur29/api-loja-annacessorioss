@@ -19,13 +19,16 @@ import com.loja.api.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.JoinType;
 import java.math.BigDecimal;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +43,34 @@ public class VendaService {
         @Transactional(readOnly = true)
         public Page<VendaResumoDTO> listarTodas(String q, StatusVenda status, FormaPagamento formaPagamento,
                         LocalDateTime inicio, LocalDateTime fim, Pageable pageable) {
-                return vendaRepository.search(q == null ? "" : q.trim(), status, formaPagamento, inicio, fim, pageable)
+                String termo = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
+                Specification<Venda> filtros = (root, query, criteriaBuilder) -> {
+                        var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+
+                        if (!termo.isBlank()) {
+                                var cliente = root.join("cliente", JoinType.LEFT);
+                                predicates.add(criteriaBuilder.like(
+                                                criteriaBuilder.lower(criteriaBuilder.coalesce(
+                                                                cliente.get("nome"), "consumidor final")),
+                                                "%" + termo + "%"));
+                        }
+                        if (status != null) {
+                                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+                        }
+                        if (formaPagamento != null) {
+                                predicates.add(criteriaBuilder.equal(root.get("formaPagamento"), formaPagamento));
+                        }
+                        if (inicio != null) {
+                                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("dataVenda"), inicio));
+                        }
+                        if (fim != null) {
+                                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("dataVenda"), fim));
+                        }
+
+                        return criteriaBuilder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+                };
+
+                return vendaRepository.findAll(filtros, pageable)
                                 .map(this::toResumoDTO);
         }
 
