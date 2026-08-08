@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { LuTriangleAlert } from 'react-icons/lu';
 import './ErrorBoundary.css';
 
 class ErrorBoundary extends Component {
@@ -24,7 +25,7 @@ class ErrorBoundary extends Component {
             return (
                 <div className="error-boundary">
                     <div className="error-boundary-card">
-                        <span className="error-boundary-icon">⚠️</span>
+                        <span className="error-boundary-icon"><LuTriangleAlert /></span>
                         <h2>Algo deu errado</h2>
                         <p>Ocorreu um erro inesperado ao renderizar esta página.</p>
                         <p className="error-boundary-detail">

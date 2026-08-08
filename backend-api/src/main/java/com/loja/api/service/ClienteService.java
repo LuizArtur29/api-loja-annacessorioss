@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -39,11 +40,19 @@ public class ClienteService {
         return toResponseDTO(cliente);
     }
 
+    @Transactional(readOnly = true)
+    public List<ClienteResponseDTO> listarAniversariantes(LocalDate data) {
+        return clienteRepository.findAniversariantes(data.getMonthValue(), data.getDayOfMonth()).stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
     @Transactional
     public ClienteResponseDTO criar(ClienteRequestDTO dto) {
         Cliente cliente = new Cliente();
         cliente.setNome(dto.nome().trim());
         cliente.setTelefone(normalizeOptional(dto.telefone()));
+        cliente.setDataNascimento(dto.dataNascimento());
         cliente = clienteRepository.save(cliente);
         return toResponseDTO(cliente);
     }
@@ -54,6 +63,7 @@ public class ClienteService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com id: " + id));
         cliente.setNome(dto.nome().trim());
         cliente.setTelefone(normalizeOptional(dto.telefone()));
+        cliente.setDataNascimento(dto.dataNascimento());
         cliente = clienteRepository.save(cliente);
         return toResponseDTO(cliente);
     }
@@ -67,7 +77,8 @@ public class ClienteService {
     }
 
     private ClienteResponseDTO toResponseDTO(Cliente cliente) {
-        return new ClienteResponseDTO(cliente.getId(), cliente.getNome(), cliente.getTelefone());
+        return new ClienteResponseDTO(cliente.getId(), cliente.getNome(), cliente.getTelefone(),
+                cliente.getDataNascimento());
     }
 
     private String normalizeOptional(String value) {

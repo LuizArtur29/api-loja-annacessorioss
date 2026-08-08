@@ -8,6 +8,9 @@ import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import customSelectStyles from '../../utils/selectStyles';
+import { LuCircleCheck, LuClock3, LuPlus, LuTriangleAlert } from 'react-icons/lu';
+import PageHeader from '../../components/PageHeader/PageHeader';
+import FilterBar from '../../components/FilterBar/FilterBar';
 
 function Despesas() {
     const queryClient = useQueryClient();
@@ -17,11 +20,20 @@ function Despesas() {
     const now = new Date();
     const [mesFiltro, setMesFiltro] = useState(now.getMonth() + 1);
     const [anoFiltro, setAnoFiltro] = useState(now.getFullYear());
+    const [statusFiltro, setStatusFiltro] = useState('');
+    const [formaFiltro, setFormaFiltro] = useState('');
+    const [inicioFiltro, setInicioFiltro] = useState('');
+    const [fimFiltro, setFimFiltro] = useState('');
 
     const { data: despesasPage, isLoading: loading } = useQuery({
-        queryKey: ['despesas', page, anoFiltro, mesFiltro, search],
+        queryKey: ['despesas', page, anoFiltro, mesFiltro, search, statusFiltro, formaFiltro, inicioFiltro, fimFiltro],
         queryFn: async () => {
-            const res = await despesaService.getAll(page, 10, anoFiltro, mesFiltro, search);
+            const res = await despesaService.getAll(page, 10, anoFiltro, mesFiltro, search, {
+                ...(statusFiltro && { status: statusFiltro }),
+                ...(formaFiltro && { formaPagamento: formaFiltro }),
+                ...(inicioFiltro && { inicio: inicioFiltro }),
+                ...(fimFiltro && { fim: fimFiltro }),
+            });
             return res.data;
         }
     });
@@ -62,9 +74,9 @@ function Despesas() {
     ];
 
     const statusOptions = [
-        { value: 'PAGO', label: '✅ Pago' },
-        { value: 'PENDENTE', label: '🕐 Pendente' },
-        { value: 'ATRASADO', label: '⚠️ Atrasado' }
+        { value: 'PAGO', label: 'Pago', Icon: LuCircleCheck },
+        { value: 'PENDENTE', label: 'Pendente', Icon: LuClock3 },
+        { value: 'ATRASADO', label: 'Atrasado', Icon: LuTriangleAlert }
     ];
 
     const formaPagamentoOptions = [
@@ -171,19 +183,14 @@ function Despesas() {
 
     const getStatusBadge = (status) => {
         const map = {
-            PAGO: { label: 'Pago', color: 'var(--success-color)', bg: 'var(--success-bg)' },
-            PENDENTE: { label: 'Pendente', color: 'var(--accent-dark)', bg: 'var(--accent-alpha)' },
-            ATRASADO: { label: 'Atrasado', color: 'var(--danger-color)', bg: 'var(--danger-bg)' }
+            PAGO: { label: 'Pago', className: 'success', Icon: LuCircleCheck },
+            PENDENTE: { label: 'Pendente', className: 'pending', Icon: LuClock3 },
+            ATRASADO: { label: 'Atrasado', className: 'danger', Icon: LuTriangleAlert }
         };
         const s = map[status] || map.PENDENTE;
         return (
-            <span style={{
-                background: s.bg, color: s.color,
-                padding: '3px 10px', borderRadius: '12px',
-                fontSize: '0.78rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif',
-                whiteSpace: 'nowrap'
-            }}>
-                {s.label}
+            <span className={`status-badge ${s.className}`}>
+                <s.Icon /> {s.label}
             </span>
         );
     };
@@ -192,6 +199,9 @@ function Despesas() {
         const f = formaPagamentoOptions.find(o => o.value === value);
         return f ? f.label : '—';
     };
+
+    const formValid = form.descricao.trim() && Number(form.valor) > 0 && form.dataPagamento
+        && form.categoria && Number(form.parcelas || 1) >= 1;
 
     /* ── Meses para o seletor ── */
     const meses = [
@@ -213,10 +223,7 @@ function Despesas() {
         {
             key: 'categoria', header: 'Categoria',
             render: (row) => (
-                <span style={{
-                    background: 'var(--accent-alpha)', padding: '3px 8px',
-                    borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-primary)'
-                }}>
+                <span className="category-badge">
                     {getCategoriaLabel(row.categoria)}
                 </span>
             )
@@ -224,7 +231,7 @@ function Despesas() {
         {
             key: 'valor', header: 'Valor',
             render: (row) => (
-                <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>
+                <span className="value-danger">
                     {formatCurrency(row.valor)}
                 </span>
             ),
@@ -245,11 +252,7 @@ function Despesas() {
             key: 'parcela', header: 'Parcela',
             render: (row) => row.parcelas > 1
                 ? (
-                    <span style={{
-                        background: 'var(--accent-alpha)', color: 'var(--accent-dark)',
-                        padding: '3px 8px', borderRadius: '10px',
-                        fontSize: '0.78rem', fontWeight: 600, fontFamily: 'Outfit, sans-serif'
-                    }}>
+                    <span className="installment-badge">
                         {row.parcelaAtual}/{row.parcelas}
                     </span>
                 ) : '—'
@@ -258,32 +261,28 @@ function Despesas() {
 
     return (
         <div>
-            <div className="page-header">
-                <h2>Despesas</h2>
-                <p>Faça a gestão das contas e gastos da loja</p>
-            </div>
+            <PageHeader
+                title="Despesas"
+                description="Acompanhe contas, vencimentos e gastos da loja"
+                breadcrumbs={[{ label: 'Financeiro' }, { label: 'Despesas' }]}
+                actions={<button className="btn btn-primary" onClick={openNew}><LuPlus /> Nova despesa</button>}
+            />
 
-            {/* ── Filtros de Mês/Ano ── */}
-            <div style={{
-                display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center',
-                flexWrap: 'wrap'
-            }}>
-                <span style={{
-                    fontSize: '0.82rem', color: 'var(--text-secondary)',
-                    fontWeight: 600, fontFamily: 'Outfit, sans-serif'
-                }}>
-                    Período:
-                </span>
+            <FilterBar
+                activeFilters={[
+                    statusFiltro && `Status: ${statusOptions.find((item) => item.value === statusFiltro)?.label}`,
+                    formaFiltro && `Pagamento: ${getFormaPgtoLabel(formaFiltro)}`,
+                    inicioFiltro && `De: ${formatDate(inicioFiltro)}`,
+                    fimFiltro && `Até: ${formatDate(fimFiltro)}`,
+                ].filter(Boolean)}
+                onClear={() => { setStatusFiltro(''); setFormaFiltro(''); setInicioFiltro(''); setFimFiltro(''); setPage(0); }}
+            >
+                <div className="filter-field"><label htmlFor="despesa-mes">Período</label>
                 <select
+                    id="despesa-mes"
                     value={mesFiltro}
                     onChange={(e) => { setMesFiltro(Number(e.target.value)); setPage(0); }}
-                    style={{
-                        padding: '6px 12px', borderRadius: '8px',
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--surface-primary)',
-                        color: 'var(--text-primary)', fontSize: '0.88rem',
-                        fontFamily: 'Outfit, sans-serif', cursor: 'pointer'
-                    }}
+                    className="filter-input"
                 >
                     {meses.map(m => (
                         <option key={m.value} value={m.value}>{m.label}</option>
@@ -292,27 +291,28 @@ function Despesas() {
                 <select
                     value={anoFiltro}
                     onChange={(e) => { setAnoFiltro(Number(e.target.value)); setPage(0); }}
-                    style={{
-                        padding: '6px 12px', borderRadius: '8px',
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--surface-primary)',
-                        color: 'var(--text-primary)', fontSize: '0.88rem',
-                        fontFamily: 'Outfit, sans-serif', cursor: 'pointer'
-                    }}
+                    className="filter-input"
                 >
                     {anos.map(a => (
                         <option key={a} value={a}>{a}</option>
                     ))}
                 </select>
-            </div>
+                </div>
+                <select className="filter-input" aria-label="Filtrar por status" value={statusFiltro} onChange={(e) => { setStatusFiltro(e.target.value); setPage(0); }}>
+                    <option value="">Todos os status</option>{statusOptions.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+                <select className="filter-input" aria-label="Filtrar por pagamento" value={formaFiltro} onChange={(e) => { setFormaFiltro(e.target.value); setPage(0); }}>
+                    <option value="">Todos os pagamentos</option>{formaPagamentoOptions.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+                <div className="filter-field"><label htmlFor="despesa-inicio">De</label><input id="despesa-inicio" className="filter-input" type="date" value={inicioFiltro} onChange={(e) => { setInicioFiltro(e.target.value); setPage(0); }} /></div>
+                <div className="filter-field"><label htmlFor="despesa-fim">Até</label><input id="despesa-fim" className="filter-input" type="date" min={inicioFiltro} value={fimFiltro} onChange={(e) => { setFimFiltro(e.target.value); setPage(0); }} /></div>
+            </FilterBar>
 
             <DataTable
                 columns={columns}
                 data={despesas}
                 loading={loading}
                 searchPlaceholder="Procurar despesa..."
-                onAdd={openNew}
-                addLabel="Nova Despesa"
                 onEdit={openEdit}
                 onDelete={handleDelete}
                 pagination={pagination}
@@ -326,6 +326,7 @@ function Despesas() {
                 title={editing ? 'Editar Despesa' : 'Registrar Nova Despesa'}
                 onSubmit={handleSubmit}
                 loading={saving}
+                submitDisabled={!formValid}
             >
                 <div className="form-group">
                     <label>Descrição *</label>
@@ -337,9 +338,10 @@ function Despesas() {
                         placeholder="Ex: Conta de Luz, Fitas para envio..."
                         autoFocus
                     />
+                    {!form.descricao.trim() && <span className="form-error">Informe uma descrição.</span>}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-grid form-grid-2">
                     <div className="form-group">
                         <label>Categoria *</label>
                         <Select
@@ -359,11 +361,14 @@ function Despesas() {
                             onChange={(option) => setForm({ ...form, status: option ? option.value : 'PENDENTE' })}
                             isSearchable={false}
                             styles={customSelectStyles}
+                            formatOptionLabel={({ label, Icon }) => (
+                                <span className="select-option-icon"><Icon />{label}</span>
+                            )}
                         />
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-grid form-grid-2">
                     <div className="form-group">
                         <label>Valor Total *</label>
                         <NumericFormat
@@ -389,7 +394,7 @@ function Despesas() {
                 </div>
 
                 {!editing && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-grid form-grid-2">
                         <div className="form-group">
                             <label>Parcelas</label>
                             <input
@@ -401,12 +406,9 @@ function Despesas() {
                                 placeholder="1"
                             />
                         </div>
-                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                        <div className="installment-preview">
                             {parseInt(form.parcelas) > 1 && form.valor && (
-                                <span style={{
-                                    fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem',
-                                    color: 'var(--accent-dark)', fontWeight: 500
-                                }}>
+                                <span>
                                     {parseInt(form.parcelas)}x de{' '}
                                     <strong>
                                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -418,7 +420,7 @@ function Despesas() {
                     </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                <div className="form-grid">
                     <div className="form-group">
                         <label>Forma de Pagamento</label>
                         <Select

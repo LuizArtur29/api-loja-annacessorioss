@@ -18,9 +18,15 @@
 }
 
 .error-boundary-icon {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 1rem;
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: var(--danger-bg);
+    color: var(--danger-color);
+    font-size: 1.8rem;
 }
 
 .error-boundary-card h2 {

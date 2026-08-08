@@ -31,8 +31,11 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
     @Query("""
             select p from Produto p
             where p.ativo = true
+              and (:categoriaId is null or p.categoria.id = :categoriaId)
+              and (:estoqueMax is null or p.quantidadeEstoque <= :estoqueMax)
               and (:q = '' or lower(p.nome) like lower(concat('%', :q, '%'))
                    or lower(coalesce(p.codigo, '')) like lower(concat('%', :q, '%')))
             """)
-    Page<Produto> searchActive(@Param("q") String q, Pageable pageable);
+    Page<Produto> searchActive(@Param("q") String q, @Param("categoriaId") Long categoriaId,
+            @Param("estoqueMax") Integer estoqueMax, Pageable pageable);
 }

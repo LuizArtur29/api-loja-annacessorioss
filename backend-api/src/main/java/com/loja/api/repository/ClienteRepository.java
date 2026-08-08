@@ -18,6 +18,16 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     @Query("""
             select c from Cliente c
             where c.ativo = true
+              and c.dataNascimento is not null
+              and month(c.dataNascimento) = :mes
+              and day(c.dataNascimento) = :dia
+            order by c.nome
+            """)
+    List<Cliente> findAniversariantes(@Param("mes") int mes, @Param("dia") int dia);
+
+    @Query("""
+            select c from Cliente c
+            where c.ativo = true
               and (:q = '' or lower(c.nome) like lower(concat('%', :q, '%'))
                    or lower(coalesce(c.telefone, '')) like lower(concat('%', :q, '%')))
             """)

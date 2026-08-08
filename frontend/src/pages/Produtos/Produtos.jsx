@@ -3,23 +3,34 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
 import { NumericFormat } from 'react-number-format';
+import { useSearchParams } from 'react-router-dom';
+import { LuGem, LuPlus, LuTriangleAlert } from 'react-icons/lu';
 import produtoService from '../../api/produtoService';
 import categoriaService from '../../api/categoriaService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import customSelectStyles from '../../utils/selectStyles';
+import PageHeader from '../../components/PageHeader/PageHeader';
 
 function Produtos() {
     const queryClient = useQueryClient();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [page, setPage] = useState(0);
-    const [search, setSearch] = useState('');
+    const initialProductSearch = searchParams.get('produto') || '';
+    const [search, setSearch] = useState(initialProductSearch);
+    const categoriaIdParam = Number(searchParams.get('categoriaId'));
+    const categoriaId = Number.isInteger(categoriaIdParam) && categoriaIdParam > 0
+        ? categoriaIdParam
+        : null;
+    const categoriaNome = searchParams.get('categoriaNome');
+    const estoqueMax = searchParams.get('estoque') === 'baixo' ? 5 : null;
 
     // Busca paginada para a tabela
     const { data: produtosPage, isLoading: loadingProdutos } = useQuery({
-        queryKey: ['produtos', page, search],
+        queryKey: ['produtos', page, search, categoriaId, estoqueMax],
         queryFn: async () => {
-            const res = await produtoService.getAll(page, 10, search);
+            const res = await produtoService.getAll(page, 10, search, categoriaId, estoqueMax);
             return res.data;
         },
         staleTime: 60 * 1000,
@@ -55,15 +66,15 @@ function Produtos() {
     useEffect(() => {
         if (produtosPage && !produtosPage.last) {
             queryClient.prefetchQuery({
-                queryKey: ['produtos', page + 1, search],
+                queryKey: ['produtos', page + 1, search, categoriaId, estoqueMax],
                 queryFn: async () => {
-                    const res = await produtoService.getAll(page + 1, 10, search);
+                    const res = await produtoService.getAll(page + 1, 10, search, categoriaId, estoqueMax);
                     return res.data;
                 },
                 staleTime: 60 * 1000,
             });
         }
-    }, [produtosPage, page, search, queryClient]);
+    }, [produtosPage, page, search, categoriaId, estoqueMax, queryClient]);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -177,6 +188,11 @@ function Produtos() {
     const formatCurrency = (value) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+    const estoqueAlterado = editing && (parseInt(form.quantidadeEstoque) || 0) !== editing.quantidadeEstoque;
+    const formValid = form.nome.trim() && Number(form.precoVenda) > 0 && form.categoriaId
+        && form.quantidadeEstoque !== '' && Number(form.quantidadeEstoque) >= 0
+        && (!estoqueAlterado || form.motivoAjuste.trim());
+
     const columns = [
         { key: 'id', header: 'ID' },
         { key: 'codigo', header: 'Código' },
@@ -195,12 +211,7 @@ function Produtos() {
             header: 'Estoque',
             key: 'quantidadeEstoque',
             render: (row) => (
-                <span
-                    style={{
-                        color: row.quantidadeEstoque <= 5 ? 'var(--danger-color)' : 'var(--text-primary)',
-                        fontWeight: row.quantidadeEstoque <= 5 ? 700 : 400,
-                    }}
-                >
+                <span className={row.quantidadeEstoque <= 5 ? 'stock-quantity low' : 'stock-quantity'}>
                     {row.quantidadeEstoque}
                 </span>
             ),
@@ -209,60 +220,60 @@ function Produtos() {
 
     return (
         <div>
-            <div className="page-header">
-                <h2>Produtos</h2>
-                <p>Faça a gestão do seu stock de bijuterias</p>
-            </div>
+            <PageHeader
+                title="Produtos"
+                description="Gerencie o catálogo e acompanhe os níveis de estoque"
+                breadcrumbs={[{ label: 'Cadastros' }, { label: 'Produtos' }]}
+                actions={<button className="btn btn-primary" onClick={openNew}><LuPlus /> Novo produto</button>}
+            />
 
             {/* Card do Valor Total do Estoque */}
             {valorTotalEstoque != null && (
-                <div style={{
-                    background: 'var(--surface-primary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '1.25rem 1.5rem',
-                    marginBottom: '1.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                }}>
-                    <span style={{ fontSize: '1.6rem' }}>💎</span>
+                <div className="inventory-value-card">
+                    <span className="inventory-value-icon"><LuGem /></span>
                     <div>
-                        <div style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.06em',
-                            color: 'var(--text-muted)',
-                            fontFamily: 'Outfit, sans-serif',
-                        }}>
+                        <div className="inventory-value-label">
                             Valor Total em Estoque
                         </div>
-                        <div style={{
-                            fontSize: '1.5rem',
-                            fontWeight: 700,
-                            color: 'var(--accent-color)',
-                            fontFamily: 'Playfair Display, serif',
-                            marginTop: '0.15rem',
-                        }}>
+                        <div className="inventory-value-total">
                             {formatCurrency(valorTotalEstoque)}
                         </div>
                     </div>
                 </div>
             )}
 
+            {(categoriaId || estoqueMax != null || initialProductSearch) && (
+                <div className="active-filter" role="status">
+                    <span>
+                        {categoriaId && <>Categoria: <strong>{categoriaNome || `#${categoriaId}`}</strong></>}
+                        {estoqueMax != null && <><LuTriangleAlert /> <strong>Estoque baixo</strong></>}
+                        {initialProductSearch && <>Produto: <strong>{initialProductSearch}</strong></>}
+                    </span>
+                    <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={() => {
+                            setSearchParams({});
+                            setPage(0);
+                        }}
+                    >
+                        Limpar filtro
+                    </button>
+                </div>
+            )}
+
             <DataTable
+                key={`${initialProductSearch}-${estoqueMax ?? 'all'}-${categoriaId ?? 'all'}`}
                 columns={columns}
                 data={produtos}
                 loading={loadingProdutos || loadingCategorias}
                 searchPlaceholder="Procurar produto..."
-                onAdd={openNew}
-                addLabel="Novo Produto"
                 onEdit={openEdit}
                 onDelete={handleDeleteClick}
                 pagination={pagination}
                 onPageChange={setPage}
                 onSearchChange={(value) => { setSearch(value); setPage(0); }}
+                initialSearch={initialProductSearch}
             />
 
             <Modal
@@ -271,6 +282,7 @@ function Produtos() {
                 title={editing ? 'Editar Produto' : 'Novo Produto'}
                 onSubmit={handleSubmit}
                 loading={saving}
+                submitDisabled={!formValid}
             >
                 <div className="form-group">
                     <label>Nome *</label>
@@ -282,6 +294,7 @@ function Produtos() {
                         placeholder="Nome do produto"
                         autoFocus
                     />
+                    {!form.nome.trim() && <span className="form-error">Informe o nome do produto.</span>}
                 </div>
                 <div className="form-group">
                     <label>Código</label>
@@ -316,7 +329,7 @@ function Produtos() {
                     />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-grid form-grid-2">
                     <div className="form-group">
                         <label>Preço de Venda *</label>
                         <NumericFormat
@@ -353,6 +366,7 @@ function Produtos() {
                             maxLength={255}
                             placeholder="Ex.: contagem física, perda ou entrada manual"
                         />
+                        {!form.motivoAjuste.trim() && <span className="form-error">Explique o motivo para manter o histórico do estoque.</span>}
                     </div>
                 )}
             </Modal>

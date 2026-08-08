@@ -61,6 +61,7 @@ public class DashboardService {
                 totalSaidas,
                 totalPendentes,
                 totalEntradas.subtract(totalSaidas),
+                vendas.size(),
                 despesasPorCategoria,
                 vendasPorForma);
     }

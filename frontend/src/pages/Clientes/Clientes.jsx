@@ -6,6 +6,8 @@ import clienteService from '../../api/clienteService';
 import DataTable from '../../components/DataTable/DataTable';
 import Modal from '../../components/Modal/Modal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import PageHeader from '../../components/PageHeader/PageHeader';
+import { LuPlus } from 'react-icons/lu';
 
 function Clientes() {
     const queryClient = useQueryClient();
@@ -32,19 +34,23 @@ function Clientes() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState({ nome: '', telefone: '' });
+    const [form, setForm] = useState({ nome: '', telefone: '', dataNascimento: '' });
 
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, cliente: null });
 
     const openNew = () => {
         setEditing(null);
-        setForm({ nome: '', telefone: '' });
+        setForm({ nome: '', telefone: '', dataNascimento: '' });
         setModalOpen(true);
     };
 
     const openEdit = (cli) => {
         setEditing(cli);
-        setForm({ nome: cli.nome, telefone: cli.telefone || '' });
+        setForm({
+            nome: cli.nome,
+            telefone: cli.telefone || '',
+            dataNascimento: cli.dataNascimento || '',
+        });
         setModalOpen(true);
     };
 
@@ -58,17 +64,22 @@ function Clientes() {
             return;
         }
         setSaving(true);
+        const payload = {
+            ...form,
+            dataNascimento: form.dataNascimento || null,
+        };
         try {
             if (editing) {
-                await clienteService.update(editing.id, form);
+                await clienteService.update(editing.id, payload);
                 toast.success('Cliente atualizado');
             } else {
-                await clienteService.create(form);
+                await clienteService.create(payload);
                 toast.success('Cliente cadastrado');
             }
             setModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
             queryClient.invalidateQueries({ queryKey: ['clientes-all'] });
+            queryClient.invalidateQueries({ queryKey: ['clientes-aniversariantes'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao salvar');
         } finally {
@@ -87,6 +98,7 @@ function Clientes() {
             toast.success('Cliente excluído');
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
             queryClient.invalidateQueries({ queryKey: ['clientes-all'] });
+            queryClient.invalidateQueries({ queryKey: ['clientes-aniversariantes'] });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao excluir');
         } finally {
@@ -102,22 +114,30 @@ function Clientes() {
             header: 'Telefone',
             render: (row) => row.telefone || '—',
         },
+        {
+            key: 'dataNascimento',
+            header: 'Nascimento',
+            render: (row) => row.dataNascimento
+                ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(`${row.dataNascimento}T00:00:00Z`))
+                : '—',
+        },
     ];
+    const formValid = form.nome.trim().length >= 2;
 
     return (
         <div>
-            <div className="page-header">
-                <h2>Clientes</h2>
-                <p>Gerencie os seus clientes</p>
-            </div>
+            <PageHeader
+                title="Clientes"
+                description="Mantenha os dados e aniversários dos seus clientes organizados"
+                breadcrumbs={[{ label: 'Cadastros' }, { label: 'Clientes' }]}
+                actions={<button className="btn btn-primary" onClick={openNew}><LuPlus /> Novo cliente</button>}
+            />
 
             <DataTable
                 columns={columns}
                 data={clientes}
                 loading={loading}
                 searchPlaceholder="Buscar cliente..."
-                onAdd={openNew}
-                addLabel="Novo Cliente"
                 onEdit={openEdit}
                 onDelete={handleDelete}
                 pagination={pagination}
@@ -131,6 +151,7 @@ function Clientes() {
                 title={editing ? 'Editar Cliente' : 'Novo Cliente'}
                 onSubmit={handleSubmit}
                 loading={saving}
+                submitDisabled={!formValid}
             >
                 <div className="form-group">
                     <label>Nome *</label>
@@ -142,6 +163,7 @@ function Clientes() {
                         placeholder="Nome do cliente"
                         autoFocus
                     />
+                    {!formValid && <span className="form-error">Informe um nome com pelo menos 2 caracteres.</span>}
                 </div>
                 <div className="form-group">
                     <label>Telefone</label>
@@ -153,6 +175,21 @@ function Clientes() {
                             setForm({ ...form, telefone: values.formattedValue });
                         }}
                         placeholder="(00) 00000-0000"
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Data de nascimento</label>
+                    <input
+                        type="date"
+                        name="dataNascimento"
+                        value={form.dataNascimento}
+                        onChange={handleChange}
+                        max={(() => {
+                            const now = new Date();
+                            const month = String(now.getMonth() + 1).padStart(2, '0');
+                            const day = String(now.getDate()).padStart(2, '0');
+                            return `${now.getFullYear()}-${month}-${day}`;
+                        })()}
                     />
                 </div>
             </Modal>

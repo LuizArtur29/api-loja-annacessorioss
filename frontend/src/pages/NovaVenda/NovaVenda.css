@@ -5,6 +5,9 @@
     align-items: start;
 }
 
+.select-option-icon { display: inline-flex; align-items: center; gap: 8px; }
+.select-option-icon svg { color: var(--accent-dark); font-size: 1rem; }
+
 .venda-itens, .venda-resumo {
     background: var(--surface-primary);
     border: 1px solid var(--border-color);
@@ -33,6 +36,13 @@
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
 }
+.add-product-field { flex: 3; }
+.quantity-field { flex: .5; min-width: 70px; }
+.btn-add-item svg, .btn-finalizar svg { font-size: 1.2rem; }
+.empty-cart-icon { margin-bottom: .75rem; font-size: 2rem; opacity: .45; }
+.resumo-totals { margin-top: auto; }
+.resumo-value { color: var(--text-primary); font-weight: 600; }
+.resumo-discount, .resumo-discount span { color: var(--danger-color); font-weight: 600; }
 
 .add-item-row .form-group input {
     height: 42px; /* Para ficar alinhado com o React Select */
@@ -57,6 +67,7 @@
     background: var(--accent-color);
     color: #fff;
 }
+.btn-add-item:disabled { cursor: not-allowed; opacity: .45; }
 
 .itens-empty {
     display: flex;
@@ -90,7 +101,8 @@
 }
 
 .item-row:hover {
-    border-color: rgba(255,255,255,0.15);
+    border-color: var(--accent-light);
+    transform: translateY(-1px);
 }
 
 .item-name {
@@ -173,7 +185,8 @@
 }
 
 .btn-finalizar:hover:not(:disabled) {
-    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-gold);
 }
 
 .btn-finalizar:active:not(:disabled) {
@@ -198,6 +211,7 @@
         flex-direction: column;
         align-items: stretch;
     }
+    .add-product-field, .quantity-field { width: 100%; }
     .item-row {
         grid-template-columns: 1fr;
         gap: 0.5rem;

@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import {
     AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
     Cell, PieChart, Pie, Legend, CartesianGrid,
     BarChart, Bar
 } from 'recharts';
+import {
+    LuArrowDownRight, LuArrowUpRight, LuCalendarDays, LuChartPie,
+    LuCircleDollarSign, LuClock3, LuCreditCard, LuPackageSearch, LuReceiptText,
+    LuShoppingBag, LuTriangleAlert
+} from 'react-icons/lu';
 import dashboardService from '../../api/dashboardService';
+import produtoService from '../../api/produtoService';
+import PageHeader from '../../components/PageHeader/PageHeader';
+import { PageSkeleton } from '../../components/Skeleton/Skeleton';
 import './Dashboard.css';
 
 /* ── Custom Tooltip ── */
@@ -65,10 +74,40 @@ function Dashboard() {
         }
     });
 
+    const periodoAnterior = mesFiltro === 1
+        ? { ano: anoFiltro - 1, mes: 12 }
+        : { ano: anoFiltro, mes: mesFiltro - 1 };
+
+    const { data: resumoAnterior } = useQuery({
+        queryKey: ['dashboard', periodoAnterior.ano, periodoAnterior.mes],
+        queryFn: async () => (await dashboardService.getResumo(periodoAnterior.ano, periodoAnterior.mes)).data,
+    });
+
+    const { data: produtos = [] } = useQuery({
+        queryKey: ['produtos-all'],
+        queryFn: async () => (await produtoService.getAllNoPagination()).data,
+        staleTime: 60 * 1000,
+    });
+
     const totalEntradas = parseFloat(resumo?.totalEntradas || 0);
     const totalSaidas = parseFloat(resumo?.totalSaidas || 0);
     const totalPendentes = parseFloat(resumo?.totalPendentes || 0);
     const saldoLiquido = parseFloat(resumo?.saldoLiquido || 0);
+    const quantidadeVendas = Number(resumo?.quantidadeVendas || 0);
+    const ticketMedio = quantidadeVendas > 0 ? totalEntradas / quantidadeVendas : 0;
+    const produtosEstoqueBaixo = produtos
+        .filter((produto) => Number(produto.quantidadeEstoque) <= 5)
+        .sort((a, b) => a.quantidadeEstoque - b.quantidadeEstoque);
+
+    const getVariation = (current, previous) => {
+        const previousValue = Number(previous || 0);
+        if (previousValue === 0) return current === 0 ? 0 : null;
+        return ((current - previousValue) / Math.abs(previousValue)) * 100;
+    };
+
+    const variationLabel = (variation) => variation == null
+        ? 'Sem base anterior'
+        : `${variation >= 0 ? '+' : ''}${variation.toFixed(1).replace('.', ',')}% vs. mês anterior`;
 
     /* ── Dados do Gráfico de Área ── */
     const dataGraficoArea = [
@@ -123,28 +162,28 @@ function Dashboard() {
     const mesLabel = MESES.find(m => m.value === mesFiltro)?.label || '';
 
     if (loadingResumo) {
-        return <div className="page-header"><h2>Carregando painel financeiro…</h2></div>;
+        return <PageSkeleton />;
     }
 
     if (isError) {
         return (
-            <div className="page-header">
-                <h2>Não foi possível carregar o painel</h2>
-                <p>Verifique a conexão e tente novamente.</p>
-            </div>
+            <PageHeader title="Não foi possível carregar o painel" description="Verifique a conexão e tente novamente." />
         );
     }
 
     return (
         <div className="dashboard-container">
-            <div className="page-header">
-                <h2>Painel Financeiro</h2>
-                <p>Visão geral do negócio e distribuição de custos</p>
-            </div>
+            <PageHeader
+                title="Painel Financeiro"
+                description="Visão geral do negócio, desempenho e atenção ao estoque"
+                eyebrow="Resumo do negócio"
+                breadcrumbs={[{ label: 'Dashboard' }]}
+                actions={<Link to="/nova-venda" className="btn btn-primary"><LuShoppingBag /> Nova venda</Link>}
+            />
 
             {/* ── Filtros de Mês/Ano ── */}
             <div className="dashboard-filters">
-                <span className="filter-label">📅 Período:</span>
+                <span className="filter-label"><LuCalendarDays /> Período</span>
                 <select
                     value={mesFiltro}
                     onChange={(e) => setMesFiltro(Number(e.target.value))}
@@ -168,32 +207,55 @@ function Dashboard() {
             {/* ── Summary Cards ── */}
             <div className="cards-grid">
                 <div className="summary-card entradas">
-                    <span className="card-icon">📈</span>
-                    <h3>Entradas (Vendas)</h3>
-                    <h2>{formatCurrency(totalEntradas)}</h2>
+                    <span className="card-icon"><LuArrowUpRight /></span>
+                    <div><h3>Entradas (Vendas)</h3><h2>{formatCurrency(totalEntradas)}</h2>
+                        <small className={`metric-trend ${getVariation(totalEntradas, resumoAnterior?.totalEntradas) >= 0 ? 'up' : 'down'}`}>{variationLabel(getVariation(totalEntradas, resumoAnterior?.totalEntradas))}</small>
+                    </div>
                 </div>
                 <div className="summary-card saidas">
-                    <span className="card-icon">📉</span>
-                    <h3>Saídas (Pagas)</h3>
-                    <h2>{formatCurrency(totalSaidas)}</h2>
+                    <span className="card-icon"><LuArrowDownRight /></span>
+                    <div><h3>Saídas (Pagas)</h3><h2>{formatCurrency(totalSaidas)}</h2>
+                        <small className="metric-trend neutral">{variationLabel(getVariation(totalSaidas, resumoAnterior?.totalSaidas))}</small>
+                    </div>
                 </div>
                 <div className={`summary-card saldo ${saldoLiquido >= 0 ? 'positivo' : 'negativo'}`}>
-                    <span className="card-icon">💰</span>
-                    <h3>Saldo Líquido</h3>
-                    <h2>{formatCurrency(saldoLiquido)}</h2>
+                    <span className="card-icon"><LuCircleDollarSign /></span>
+                    <div><h3>Saldo Líquido</h3><h2>{formatCurrency(saldoLiquido)}</h2>
+                        <small className={`metric-trend ${getVariation(saldoLiquido, resumoAnterior?.saldoLiquido) >= 0 ? 'up' : 'down'}`}>{variationLabel(getVariation(saldoLiquido, resumoAnterior?.saldoLiquido))}</small>
+                    </div>
+                </div>
+                <div className="summary-card vendas-count">
+                    <span className="card-icon"><LuReceiptText /></span>
+                    <div><h3>Vendas realizadas</h3><h2>{quantidadeVendas}</h2><small className="metric-trend neutral">No período selecionado</small></div>
+                </div>
+                <div className="summary-card ticket">
+                    <span className="card-icon"><LuCreditCard /></span>
+                    <div><h3>Ticket médio</h3><h2>{formatCurrency(ticketMedio)}</h2><small className="metric-trend neutral">Valor médio por venda</small></div>
                 </div>
             </div>
 
+            <section className="stock-alert-section">
+                <div className="section-heading">
+                    <div><h3><LuPackageSearch /> Atenção ao estoque</h3><p>Produtos com cinco unidades ou menos</p></div>
+                    <Link to="/produtos?estoque=baixo">Ver todos</Link>
+                </div>
+                {produtosEstoqueBaixo.length > 0 ? (
+                    <div className="stock-alert-list">
+                        {produtosEstoqueBaixo.slice(0, 5).map((produto) => (
+                            <Link className="stock-alert-item" to={`/produtos?produto=${encodeURIComponent(produto.nome)}`} key={produto.id}>
+                                <span className={`stock-level ${produto.quantidadeEstoque === 0 ? 'empty' : 'low'}`}><LuTriangleAlert /></span>
+                                <span><strong>{produto.nome}</strong><small>{produto.categoriaNome}</small></span>
+                                <b>{produto.quantidadeEstoque === 0 ? 'Sem estoque' : `${produto.quantidadeEstoque} un.`}</b>
+                            </Link>
+                        ))}
+                    </div>
+                ) : <div className="stock-ok">Todos os produtos estão com estoque saudável.</div>}
+            </section>
+
             {/* ── Pendentes/Atrasados ── */}
             {totalPendentes > 0 && (
-                <div style={{
-                    background: 'var(--accent-alpha)', border: '1px solid var(--accent-light)',
-                    borderRadius: 'var(--radius-md)', padding: '14px 20px',
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem',
-                    color: 'var(--accent-dark)'
-                }}>
-                    <span>🕐</span>
+                <div className="pending-notice">
+                    <LuClock3 />
                     <span>
                         Você tem <strong>{formatCurrency(totalPendentes)}</strong> em despesas pendentes/atrasadas
                         em {mesLabel}/{anoFiltro} que não estão no saldo acima.
@@ -206,7 +268,7 @@ function Dashboard() {
                 <div className="chart-section">
                     <h3>Balanço de {mesLabel}</h3>
                     <p className="chart-subtitle">Comparativo entre entradas e saídas pagas</p>
-                    <div style={{ height: 320, width: '100%' }}>
+                    <div className="chart-canvas">
                         <ResponsiveContainer>
                             <AreaChart data={dataGraficoArea} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
                                 <defs>
@@ -248,7 +310,7 @@ function Dashboard() {
                 <div className="chart-section">
                     <h3>Para onde vai o dinheiro?</h3>
                     <p className="chart-subtitle">Despesas pagas em {mesLabel} por categoria</p>
-                    <div style={{ height: 320, width: '100%' }}>
+                    <div className="chart-canvas">
                         {dataGraficoPizza.length > 0 ? (
                             <ResponsiveContainer>
                                 <PieChart>
@@ -281,7 +343,7 @@ function Dashboard() {
                             </ResponsiveContainer>
                         ) : (
                             <div className="chart-empty-state">
-                                <span className="empty-icon">📊</span>
+                                <span className="empty-icon"><LuChartPie /></span>
                                 <span>Nenhuma despesa paga em {mesLabel}/{anoFiltro}.</span>
                             </div>
                         )}
@@ -290,11 +352,11 @@ function Dashboard() {
             </div>
 
             {/* ── Formas de Pagamento ── */}
-            <div className="dashboard-charts" style={{ gridTemplateColumns: '1fr' }}>
+            <div className="dashboard-charts dashboard-charts-full">
                 <div className="chart-section">
                     <h3>Formas de Pagamento mais usadas</h3>
                     <p className="chart-subtitle">Vendas em {mesLabel} por método de pagamento</p>
-                    <div style={{ height: 300, width: '100%' }}>
+                    <div className="chart-canvas chart-canvas-short">
                         {dataGraficoPgto.length > 0 ? (
                             <ResponsiveContainer>
                                 <BarChart data={dataGraficoPgto} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
@@ -331,7 +393,7 @@ function Dashboard() {
                             </ResponsiveContainer>
                         ) : (
                             <div className="chart-empty-state">
-                                <span className="empty-icon">💳</span>
+                                <span className="empty-icon"><LuCreditCard /></span>
                                 <span>Nenhuma venda com forma de pagamento em {mesLabel}/{anoFiltro}.</span>
                             </div>
                         )}

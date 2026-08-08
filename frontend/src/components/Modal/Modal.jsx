@@ -1,7 +1,15 @@
-import { LuX } from 'react-icons/lu';
+import { useEffect } from 'react';
+import { LuLoaderCircle, LuX } from 'react-icons/lu';
 import './Modal.css';
 
-function Modal({ isOpen, onClose, title, children, onSubmit, submitLabel = 'Salvar', loading }) {
+function Modal({ isOpen, onClose, title, children, onSubmit, submitLabel = 'Salvar', loading, submitDisabled = false }) {
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const handleKeyDown = (event) => event.key === 'Escape' && !loading && onClose();
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, loading, onClose]);
+
     if (!isOpen) return null;
 
     const handleOverlayClick = (e) => {
@@ -10,10 +18,10 @@ function Modal({ isOpen, onClose, title, children, onSubmit, submitLabel = 'Salv
 
     return (
         <div className="modal-overlay" onClick={handleOverlayClick}>
-            <div className="modal">
+            <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
                 <div className="modal-header">
-                    <h3>{title}</h3>
-                    <button className="modal-close" onClick={onClose}>
+                    <h3 id="modal-title">{title}</h3>
+                    <button type="button" className="modal-close" onClick={onClose} aria-label="Fechar modal">
                         <LuX />
                     </button>
                 </div>
@@ -28,7 +36,8 @@ function Modal({ isOpen, onClose, title, children, onSubmit, submitLabel = 'Salv
                         <button type="button" className="btn btn-secondary" onClick={onClose}>
                             Cancelar
                         </button>
-                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                        <button type="submit" className="btn btn-primary" disabled={loading || submitDisabled}>
+                            {loading && <LuLoaderCircle className="button-spinner" />}
                             {loading ? 'Salvando...' : submitLabel}
                         </button>
                     </div>

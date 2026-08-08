@@ -1,5 +1,19 @@
 # Checklist de migração
 
+## Verificação adicional da V4
+
+- Data: 2026-08-07 (America/Recife).
+- Migração: `V4__customer_birth_dates.sql`.
+- Ensaio incremental: tabela `clientes` compatível com a versão anterior criada em
+  PostgreSQL 17, com registro existente, seguida da aplicação da V4.
+- Resultado: registro e contagem preservados; coluna `data_nascimento` criada como
+  `DATE` anulável.
+- Ensaio completo: migrations V1 a V4 e validação Hibernate aprovadas nos 17 testes
+  de integração com PostgreSQL 17 via Testcontainers.
+- Limitação: a URL da origem de produção não estava configurada nesta sessão; antes
+  da publicação, continua obrigatório repetir `ops/rehearse-migrations.sh` contra um
+  dump recente da produção, conforme o checklist abaixo.
+
 ## Último ensaio registrado
 
 - Data: 2026-08-06 (America/Recife).

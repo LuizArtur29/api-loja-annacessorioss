@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { LuSearch, LuPlus, LuPen, LuTrash2, LuInbox, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
+import { LuSearch, LuPlus, LuPen, LuTrash2, LuInbox, LuChevronLeft, LuChevronRight, LuEllipsis } from 'react-icons/lu';
+import { TableSkeleton } from '../Skeleton/Skeleton';
 import './DataTable.css';
 
 const getVisiblePages = (currentPage, totalPages) => {
@@ -29,8 +30,15 @@ function DataTable({
                        pagination,
                        onPageChange,
                        onSearchChange,
+                       onRowClick,
+                       editLabel = 'Editar',
+                       deleteLabel = 'Excluir',
+                       initialSearch = '',
+                       editIcon = <LuPen />,
+                       deleteIcon = <LuTrash2 />,
                    }) {
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(initialSearch);
+    const [openActions, setOpenActions] = useState(null);
     const onSearchChangeRef = useRef(onSearchChange);
 
     useEffect(() => {
@@ -52,6 +60,12 @@ function DataTable({
         });
     });
 
+    const renderCell = (column, row) => column.render
+        ? column.render(row)
+        : column.accessor
+            ? column.accessor(row)
+            : row[column.key];
+
     return (
         <div className="data-table-wrapper">
             <div className="data-table-toolbar">
@@ -72,9 +86,7 @@ function DataTable({
             </div>
 
             {loading ? (
-                <div className="data-table-loading">
-                    <div className="spinner" />
-                </div>
+                <TableSkeleton columns={Math.min(columns.length + 1, 6)} />
             ) : filtered.length === 0 ? (
                 <div className="data-table-empty">
                     <LuInbox />
@@ -92,35 +104,49 @@ function DataTable({
                     </thead>
                     <tbody>
                     {filtered.map((row, idx) => (
-                        <tr key={row.id || idx}>
+                        <tr
+                            key={row.id || idx}
+                            className={onRowClick ? 'clickable-row' : undefined}
+                            onClick={onRowClick ? () => onRowClick(row) : undefined}
+                            onKeyDown={onRowClick ? (event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    onRowClick(row);
+                                }
+                            } : undefined}
+                            tabIndex={onRowClick ? 0 : undefined}
+                        >
                             {columns.map((col) => (
                                 <td key={col.key || col.header}>
-                                    {col.render
-                                        ? col.render(row)
-                                        : col.accessor
-                                            ? col.accessor(row)
-                                            : row[col.key]}
+                                    {renderCell(col, row)}
                                 </td>
                             ))}
                             {(onEdit || onDelete) && (
-                                <td>
+                                <td
+                                    onClick={(event) => event.stopPropagation()}
+                                    onKeyDown={(event) => event.stopPropagation()}
+                                >
                                     <div className="table-actions">
                                         {onEdit && (
                                             <button
                                                 className="btn btn-ghost"
                                                 onClick={() => onEdit(row)}
-                                                title="Editar"
+                                                title={editLabel}
+                                                data-tooltip={editLabel}
+                                                aria-label={`${editLabel} registro`}
                                             >
-                                                <LuPen />
+                                                {editIcon}
                                             </button>
                                         )}
                                         {onDelete && (
                                             <button
                                                 className="btn btn-danger"
                                                 onClick={() => onDelete(row)}
-                                                title="Excluir"
+                                                title={deleteLabel}
+                                                data-tooltip={deleteLabel}
+                                                aria-label={`${deleteLabel} registro`}
                                             >
-                                                <LuTrash2 />
+                                                {deleteIcon}
                                             </button>
                                         )}
                                     </div>
@@ -130,6 +156,54 @@ function DataTable({
                     ))}
                     </tbody>
                 </table>
+            )}
+
+            {!loading && filtered.length > 0 && (
+                <div className="data-cards">
+                    {filtered.map((row, index) => {
+                        const rowKey = row.id || index;
+                        return (
+                            <article
+                                className={`data-card${onRowClick ? ' clickable' : ''}`}
+                                key={rowKey}
+                                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                                onKeyDown={onRowClick ? (event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        onRowClick(row);
+                                    }
+                                } : undefined}
+                                tabIndex={onRowClick ? 0 : undefined}
+                                role={onRowClick ? 'button' : undefined}
+                            >
+                                <div className="data-card-content">
+                                    {columns.filter((column) => !column.mobileHidden).map((column) => (
+                                        <div className="data-card-field" key={column.key || column.header}>
+                                            <span>{column.header}</span>
+                                            <div>{renderCell(column, row)}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {(onEdit || onDelete) && (
+                                    <div className="data-card-actions" onClick={(event) => event.stopPropagation()}>
+                                        <button
+                                            className="btn btn-ghost data-card-menu"
+                                            aria-label="Abrir ações"
+                                            aria-expanded={openActions === rowKey}
+                                            onClick={() => setOpenActions(openActions === rowKey ? null : rowKey)}
+                                        ><LuEllipsis /></button>
+                                        {openActions === rowKey && (
+                                            <div className="data-card-action-menu">
+                                                {onEdit && <button onClick={() => { onEdit(row); setOpenActions(null); }}>{editIcon} {editLabel}</button>}
+                                                {onDelete && <button className="danger" onClick={() => { onDelete(row); setOpenActions(null); }}>{deleteIcon} {deleteLabel}</button>}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </article>
+                        );
+                    })}
+                </div>
             )}
 
             {pagination && !loading && (

@@ -52,7 +52,7 @@ test('exige motivo e envia cancelamento auditável', async ({ page }) => {
     });
 
     await page.goto('/vendas');
-    await page.getByTitle('Excluir').click();
+    await page.getByRole('button', { name: 'Cancelar registro' }).click();
 
     const confirm = page.getByRole('button', { name: 'Confirmar cancelamento' });
     await expect(confirm).toBeDisabled();

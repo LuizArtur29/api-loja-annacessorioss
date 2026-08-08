@@ -31,8 +31,8 @@ public class ProdutoService {
     private final MovimentacaoEstoqueService movimentacaoEstoqueService;
 
     @Transactional(readOnly = true)
-    public Page<ProdutoResponseDTO> listarTodos(String q, Pageable pageable) {
-        return produtoRepository.searchActive(normalizeQuery(q), pageable)
+    public Page<ProdutoResponseDTO> listarTodos(String q, Long categoriaId, Integer estoqueMax, Pageable pageable) {
+        return produtoRepository.searchActive(normalizeQuery(q), categoriaId, estoqueMax, pageable)
                 .map(this::toResponseDTO);
     }
 
