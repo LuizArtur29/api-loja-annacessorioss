@@ -2,6 +2,7 @@ package com.loja.api.repository;
 
 import com.loja.api.model.Venda;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -9,14 +10,14 @@ import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import com.loja.api.model.enums.StatusVenda;
-import com.loja.api.model.enums.FormaPagamento;
+import java.time.LocalDateTime;
 
-public interface VendaRepository extends JpaRepository<Venda, Long> {
+public interface VendaRepository extends JpaRepository<Venda, Long>, JpaSpecificationExecutor<Venda> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select v from Venda v where v.id = :id")
     Optional<Venda> findByIdForUpdate(@Param("id") Long id);
@@ -26,21 +27,7 @@ public interface VendaRepository extends JpaRepository<Venda, Long> {
     Optional<Venda> findDetailedById(@Param("id") Long id);
 
     @EntityGraph(attributePaths = "cliente")
-    @Query("""
-            select v from Venda v left join v.cliente c
-            where (:q = '' or lower(coalesce(c.nome, 'consumidor final')) like lower(concat('%', :q, '%')))
-              and (:status is null or v.status = :status)
-              and (:formaPagamento is null or v.formaPagamento = :formaPagamento)
-              and (:inicio is null or v.dataVenda >= :inicio)
-              and (:fim is null or v.dataVenda <= :fim)
-            """)
-    Page<Venda> search(
-            @Param("q") String q,
-            @Param("status") StatusVenda status,
-            @Param("formaPagamento") FormaPagamento formaPagamento,
-            @Param("inicio") LocalDateTime inicio,
-            @Param("fim") LocalDateTime fim,
-            Pageable pageable);
+    Page<Venda> findAll(Specification<Venda> specification, Pageable pageable);
 
     List<Venda> findByDataVendaBetweenAndStatus(LocalDateTime inicio, LocalDateTime fim, StatusVenda status);
 }
